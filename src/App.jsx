@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Gift, 
   TrendingUp, 
@@ -23,8 +23,15 @@ import {
   QrCode,
   Smartphone,
   Share2,
-  Copy
+  Copy,
+  Cloud,
+  CheckCircle,
+  Settings,
+  LogOut,
+  ExternalLink,
+  ShieldCheck
 } from 'lucide-react';
+import { GoogleDriveService } from './services/googleDrive';
 
 // 初期サンプルデータ（お母様に人気の優待銘柄）
 const INITIAL_STOCKS = [
@@ -137,6 +144,8 @@ const PRESET_STOCKS = [
   }
 ];
 
+const driveService = new GoogleDriveService();
+
 export default function App() {
   const [stocks, setStocks] = useState(() => {
     const saved = localStorage.getItem('my_kabushiki_list');
@@ -145,15 +154,22 @@ export default function App() {
 
   // 文字サイズ設定 ('normal': 標準, 'large': 大きめ, 'huge': 特大)
   const [fontSizeMode, setFontSizeMode] = useState(() => {
-    return localStorage.getItem('kabushiki_font_size') || 'large'; // 初期設定はシニアに優しい「大きめ」
+    return localStorage.getItem('kabushiki_font_size') || 'large';
   });
 
   const [activeTab, setActiveTab] = useState('list'); // 'list' | 'calendar' | 'ai'
   const [selectedStock, setSelectedStock] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
+
+  // Google連携ステート
+  const [googleUser, setGoogleUser] = useState(null);
+  const [syncStatus, setSyncStatus] = useState('idle'); // 'idle' | 'syncing' | 'saved' | 'error'
+  const [clientIdInput, setClientIdInput] = useState(localStorage.getItem('google_client_id') || '');
+  const [isDriveReady, setIsDriveReady] = useState(false);
 
   // かんたん購入単価の直接変更モーダル
   const [editingPriceStock, setEditingPriceStock] = useState(null);
@@ -176,6 +192,31 @@ export default function App() {
     memo: ''
   });
 
+  // Google Drive 初期化
+  useEffect(() => {
+    driveService.init(async (token, profile) => {
+      setGoogleUser(profile);
+      setSyncStatus('syncing');
+      try {
+        // ドライブからデータ取得
+        const driveData = await driveService.loadStocksData();
+        if (driveData && Array.isArray(driveData) && driveData.length > 0) {
+          setStocks(driveData);
+          localStorage.setItem('my_kabushiki_list', JSON.stringify(driveData));
+        } else {
+          // ドライブにまだデータがなければ現在のローカルデータを保存
+          await driveService.saveStocksData(stocks);
+        }
+        setSyncStatus('saved');
+      } catch (err) {
+        console.error('Drive load error:', err);
+        setSyncStatus('error');
+      }
+    }).then(() => {
+      setIsDriveReady(true);
+    });
+  }, []);
+
   // LocalStorage保存
   useEffect(() => {
     localStorage.setItem('my_kabushiki_list', JSON.stringify(stocks));
@@ -184,6 +225,70 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('kabushiki_font_size', fontSizeMode);
   }, [fontSizeMode]);
+
+  // Googleドライブへ自動保存（ログイン時）
+  const saveToDrive = async (newStocks) => {
+    if (googleUser && driveService.accessToken) {
+      setSyncStatus('syncing');
+      try {
+        const ok = await driveService.saveStocksData(newStocks);
+        setSyncStatus(ok ? 'saved' : 'error');
+        if (ok) {
+          setTimeout(() => setSyncStatus('idle'), 3000);
+        }
+      } catch (e) {
+        console.error('Save to drive error:', e);
+        setSyncStatus('error');
+      }
+    }
+  };
+
+  // Googleログイン実行
+  const handleGoogleSignIn = () => {
+    const currentId = localStorage.getItem('google_client_id');
+    if (!currentId) {
+      setShowSettingsModal(true);
+      return;
+    }
+    try {
+      driveService.signIn();
+    } catch (e) {
+      if (e.message === 'CLIENT_ID_NOT_SET') {
+        setShowSettingsModal(true);
+      }
+    }
+  };
+
+  // ログアウト処理
+  const handleGoogleSignOut = () => {
+    if (window.confirm('Googleアカウントの連携を解除しますか？\n（スマートフォンのデータは残ります）')) {
+      driveService.accessToken = null;
+      driveService.userProfile = null;
+      setGoogleUser(null);
+      setSyncStatus('idle');
+    }
+  };
+
+  // Client IDの保存
+  const handleSaveClientId = (e) => {
+    e.preventDefault();
+    const cleaned = clientIdInput.trim();
+    driveService.setClientId(cleaned);
+    setShowSettingsModal(false);
+    alert('GoogleクライアントIDを設定しました！「Googleでログイン」を押して連携をお試しください。');
+    // 再初期化
+    driveService.init(async (token, profile) => {
+      setGoogleUser(profile);
+      setSyncStatus('syncing');
+      const driveData = await driveService.loadStocksData();
+      if (driveData && Array.isArray(driveData) && driveData.length > 0) {
+        setStocks(driveData);
+      } else {
+        await driveService.saveStocksData(stocks);
+      }
+      setSyncStatus('saved');
+    });
+  };
 
   // 文字サイズに応じたクラスヘルパー
   const fontStyles = {
@@ -222,7 +327,9 @@ export default function App() {
   // 削除処理
   const handleDelete = (id) => {
     if (window.confirm('この株式をリストから削除してもよろしいですか？')) {
-      setStocks(stocks.filter(s => s.id !== id));
+      const updated = stocks.filter(s => s.id !== id);
+      setStocks(updated);
+      saveToDrive(updated);
       if (selectedStock && selectedStock.id === id) {
         setSelectedStock(null);
       }
@@ -237,7 +344,7 @@ export default function App() {
     const newBuy = Number(tempBuyPrice);
     const newCurrent = Number(tempCurrentPrice);
 
-    setStocks(stocks.map(s => {
+    const updated = stocks.map(s => {
       if (s.id === editingPriceStock.id) {
         return {
           ...s,
@@ -246,7 +353,10 @@ export default function App() {
         };
       }
       return s;
-    }));
+    });
+
+    setStocks(updated);
+    saveToDrive(updated);
 
     if (selectedStock && selectedStock.id === editingPriceStock.id) {
       setSelectedStock(prev => ({
@@ -284,8 +394,11 @@ export default function App() {
       memo: formData.memo || ''
     };
 
-    setStocks([...stocks, newStock]);
+    const updated = [...stocks, newStock];
+    setStocks(updated);
+    saveToDrive(updated);
     setShowAddModal(false);
+
     // フォームリセット
     setFormData({
       code: '',
@@ -317,7 +430,9 @@ export default function App() {
       buyPrice: finalBuyPrice,
       memo: 'おすすめ銘柄から追加しました'
     };
-    setStocks([...stocks, newStock]);
+    const updated = [...stocks, newStock];
+    setStocks(updated);
+    saveToDrive(updated);
     alert(`${preset.name} を手帳に追加しました！`);
   };
 
@@ -328,15 +443,22 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-slate-800 pb-28 max-w-md mx-auto shadow-xl relative border-x border-amber-100/60 font-sans">
-      {/* 最上部：文字の大きさ変更トグルバー ＆ スマホ連携ボタン */}
+      {/* 最上部：文字サイズ ＆ 共有 ＆ 設定バー */}
       <div className="bg-amber-600 text-amber-50 px-3 py-2 flex items-center justify-between border-b border-amber-500/40 sticky top-0 z-30 shadow-xs">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => setShowQrModal(true)}
             className="flex items-center gap-1 bg-white text-amber-800 text-[11px] font-black px-2.5 py-1 rounded-lg shadow-sm hover:bg-amber-50 active:scale-95 transition-transform"
           >
             <QrCode className="w-3.5 h-3.5 text-amber-600" />
-            <span>スマホで使う</span>
+            <span>スマホで共有</span>
+          </button>
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            title="Google Drive 連携設定"
+            className="p-1.5 rounded-lg bg-amber-700/60 hover:bg-amber-700 text-amber-100"
+          >
+            <Settings className="w-3.5 h-3.5" />
           </button>
         </div>
 
@@ -374,6 +496,51 @@ export default function App() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Google ドライブ同期状態バナー */}
+      <div className="bg-amber-500/20 border-b border-amber-200 px-4 py-2 flex items-center justify-between text-xs">
+        {googleUser ? (
+          <div className="flex items-center gap-2 flex-1">
+            {googleUser.picture ? (
+              <img src={googleUser.picture} alt="" className="w-5 h-5 rounded-full" />
+            ) : (
+              <Cloud className="w-4 h-4 text-emerald-600" />
+            )}
+            <div className="flex items-center gap-1 text-slate-700">
+              <span className="font-bold truncate max-w-[130px]">{googleUser.name || 'Google'}</span>
+              <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-1.5 py-0.5 rounded">
+                Drive/myKabushikiList
+              </span>
+            </div>
+            {syncStatus === 'syncing' && <span className="text-[10px] text-amber-700 animate-pulse">保存中...</span>}
+            {syncStatus === 'saved' && <span className="text-[10px] text-emerald-700 font-bold">✓ 保存済</span>}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between w-full">
+            <span className="text-slate-600 text-[11px] flex items-center gap-1">
+              <Cloud className="w-3.5 h-3.5 text-slate-400" />
+              <span>Googleドライブに自動バックアップできます</span>
+            </span>
+            <button
+              onClick={handleGoogleSignIn}
+              className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-2xs flex items-center gap-1 active:scale-95"
+            >
+              <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="" className="w-3.5 h-3.5" />
+              <span>ログイン</span>
+            </button>
+          </div>
+        )}
+
+        {googleUser && (
+          <button 
+            onClick={handleGoogleSignOut}
+            title="連携解除"
+            className="text-slate-400 hover:text-rose-600 p-1"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
 
       {/* ヘッダー */}
@@ -681,10 +848,9 @@ export default function App() {
           </div>
         )}
 
-        {/* 3. ★【大文字対応】AIアドバイス・予測・診断タブ */}
+        {/* 3. AIアドバイス・予測・診断タブ */}
         {activeTab === 'ai' && (
           <div className="space-y-4">
-            {/* バナーカード */}
             <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-amber-600 text-white rounded-3xl p-5 shadow-lg">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-7 h-7 text-yellow-300" />
@@ -695,7 +861,6 @@ export default function App() {
               </p>
             </div>
 
-            {/* AIの解説カード */}
             <div className={`bg-white rounded-3xl ${fontStyles.cardPadding} shadow-sm border border-slate-200 space-y-3`}>
               <h3 className={`${fontStyles.title} text-slate-800 flex items-center gap-2`}>
                 <Smile className="w-5 h-5 text-amber-500" />
@@ -707,7 +872,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* AI株価予測についての解説コラム（文字が大きく読みやすい） */}
             <div className={`bg-white rounded-3xl ${fontStyles.cardPadding} shadow-sm border border-slate-200 space-y-3`}>
               <div className="flex items-center gap-1.5 text-indigo-600 font-black text-sm">
                 <Info className="w-5 h-5" />
@@ -808,7 +972,6 @@ export default function App() {
                 />
               </div>
 
-              {/* 入力中の利益プレビュー */}
               {tempBuyPrice && tempCurrentPrice && (
                 <div className="p-3 rounded-xl bg-slate-100 text-xs flex justify-between items-center font-bold">
                   <span className="text-slate-600">利益の計算結果:</span>
@@ -843,7 +1006,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 銘柄詳細モーダル（タップ時に大きく表示） */}
+      {/* 銘柄詳細モーダル */}
       {selectedStock && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-0 backdrop-blur-xs">
           <div className="bg-white rounded-t-3xl w-full max-w-md p-6 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
@@ -1164,7 +1327,85 @@ export default function App() {
         </div>
       )}
 
-      {/* スマホで使う・お母さんに渡す手順モーダル */}
+      {/* Google Drive 設定モーダル */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-3">
+              <div className="flex items-center gap-2">
+                <Cloud className="w-5 h-5 text-amber-500" />
+                <h3 className="text-base font-black text-slate-900">Googleドライブ保存設定</h3>
+              </div>
+              <button 
+                onClick={() => setShowSettingsModal(false)}
+                className="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center font-bold text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3.5 text-xs text-slate-600">
+              <div className="bg-amber-50 p-3.5 rounded-2xl border border-amber-200">
+                <div className="font-black text-amber-950 mb-1 flex items-center gap-1">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>安心・安全の個人保存仕様</span>
+                </div>
+                <p className="leading-relaxed text-[11px] text-slate-700">
+                  お母様がGoogleログインすると、お母様ご自身のGoogleドライブの「<strong>myKabushikiList</strong>」フォルダの中にデータ（<code>stocks_data.json</code>）が直接保存されます。他の人に見られることはありません。
+                </p>
+              </div>
+
+              <form onSubmit={handleSaveClientId} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    Google OAuth クライアントID
+                  </label>
+                  <input 
+                    type="text"
+                    required
+                    placeholder="xxxx.apps.googleusercontent.com"
+                    value={clientIdInput}
+                    onChange={(e) => setClientIdInput(e.target.value)}
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 font-mono focus:outline-none focus:border-amber-500"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Google Cloud Console で発行した Web アプリケーションの Client ID を入力します。
+                  </p>
+                </div>
+
+                <div className="pt-1 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowSettingsModal(false)}
+                    className="flex-1 py-2.5 text-xs font-bold text-slate-500 bg-slate-100 rounded-xl"
+                  >
+                    閉じる
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 text-xs font-black text-white bg-amber-500 rounded-xl shadow-md active:scale-95"
+                  >
+                    設定を保存
+                  </button>
+                </div>
+              </form>
+
+              {/* 取得ガイド */}
+              <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] space-y-1.5 text-slate-500">
+                <p className="font-bold text-slate-700">📌 クライアントIDの取得方法（竜馬さん用）:</p>
+                <ol className="list-decimal list-inside space-y-1 text-[10px] leading-relaxed">
+                  <li>Google Cloud Console でプロジェクトを作成</li>
+                  <li>「Google Drive API」を有効化</li>
+                  <li>認証情報で「OAuth クライアントID」を作成（Webアプリケーション）</li>
+                  <li>承認済みの JavaScript 生成元に <code>https://japanexporters-ryoma.github.io</code> を追加</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* スマホで共有モーダル */}
       {showQrModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
           <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
