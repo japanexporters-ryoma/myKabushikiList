@@ -29,11 +29,14 @@ import {
   Settings,
   LogOut,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  Bell,
+  BellRing,
+  PackageCheck
 } from 'lucide-react';
 import { GoogleDriveService } from './services/googleDrive';
 
-// 初期サンプルデータ（お母様に人気の優待銘柄）
+// 初期サンプルデータ
 const INITIAL_STOCKS = [
   {
     id: '1',
@@ -162,14 +165,28 @@ export default function App() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
+  
+  // 今月
+  const currentMonth = new Date().getMonth() + 1;
+  const currentYear = new Date().getFullYear();
+  const [selectedCalMonth, setSelectedCalMonth] = useState(currentMonth);
+
+  // 受取済み優待のID管理（LocalStorage）
+  const [receivedYutai, setReceivedYutai] = useState(() => {
+    const saved = localStorage.getItem(`received_yutai_${currentYear}_${currentMonth}`);
+    return saved ? JSON.parse(saved) : [];
+  });
 
   // Google連携ステート
   const [googleUser, setGoogleUser] = useState(null);
   const [syncStatus, setSyncStatus] = useState('idle'); // 'idle' | 'syncing' | 'saved' | 'error'
   const [clientIdInput, setClientIdInput] = useState(localStorage.getItem('google_client_id') || '');
   const [isDriveReady, setIsDriveReady] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState(
+    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
+  );
 
   // かんたん購入単価の直接変更モーダル
   const [editingPriceStock, setEditingPriceStock] = useState(null);
@@ -192,19 +209,37 @@ export default function App() {
     memo: ''
   });
 
+  // 今月届く優待のリスト
+  const currentMonthStocks = stocks.filter(s => s.deliveryMonths && s.deliveryMonths.includes(currentMonth));
+
+  // アプリ初回読み込み時：今月届く優待があれば自動的にお知らせポップアップを表示（1日1回）
+  useEffect(() => {
+    if (currentMonthStocks.length > 0) {
+      const todayKey = `notice_seen_${currentYear}_${currentMonth}_${new Date().getDate()}`;
+      const hasSeenToday = localStorage.getItem(todayKey);
+      if (!hasSeenToday) {
+        setShowNoticeModal(true);
+        localStorage.setItem(todayKey, 'true');
+      }
+    }
+  }, [stocks.length]);
+
+  // 受取済み更新時にLocalStorageへ保存
+  useEffect(() => {
+    localStorage.setItem(`received_yutai_${currentYear}_${currentMonth}`, JSON.stringify(receivedYutai));
+  }, [receivedYutai, currentMonth, currentYear]);
+
   // Google Drive 初期化
   useEffect(() => {
     driveService.init(async (token, profile) => {
       setGoogleUser(profile);
       setSyncStatus('syncing');
       try {
-        // ドライブからデータ取得
         const driveData = await driveService.loadStocksData();
         if (driveData && Array.isArray(driveData) && driveData.length > 0) {
           setStocks(driveData);
           localStorage.setItem('my_kabushiki_list', JSON.stringify(driveData));
         } else {
-          // ドライブにまだデータがなければ現在のローカルデータを保存
           await driveService.saveStocksData(stocks);
         }
         setSyncStatus('saved');
@@ -275,7 +310,6 @@ export default function App() {
     driveService.setClientId(cleaned);
     setShowSettingsModal(false);
     alert('GoogleクライアントIDを設定しました！「Googleでログイン」を押して連携をお試しください。');
-    // 再初期化
     driveService.init(async (token, profile) => {
       setGoogleUser(profile);
       setSyncStatus('syncing');
@@ -286,6 +320,39 @@ export default function App() {
         await driveService.saveStocksData(stocks);
       }
       setSyncStatus('saved');
+    });
+  };
+
+  // プッシュ通知の許可とテスト送信
+  const handleRequestNotification = async () => {
+    if (!('Notification' in window)) {
+      alert('お使いのブラウザはプッシュ通知に対応していません。アプリ内の通知でお知らせします！');
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    setNotificationPermission(perm);
+    if (perm === 'granted') {
+      const names = currentMonthStocks.map(s => s.name).join('、');
+      new Notification('🎁 今月届く優待のお知らせ！', {
+        body: currentMonthStocks.length > 0 
+          ? `今月 (${currentMonth}月) は ${names} から優待が届く予定です！` 
+          : `今月届く優待はありません。次回のお楽しみをお待ちください！`,
+        icon: 'https://api.iconify.design/lucide:gift.svg'
+      });
+      alert('通知をONにしました！今月届く優待の通知をテスト送信しました。');
+    } else {
+      alert('通知がブロックされました。ブラウザの設定で通知を許可してください。');
+    }
+  };
+
+  // 受取チェックのトグル
+  const toggleReceived = (stockId) => {
+    setReceivedYutai(prev => {
+      if (prev.includes(stockId)) {
+        return prev.filter(id => id !== stockId);
+      } else {
+        return [...prev, stockId];
+      }
     });
   };
 
@@ -398,7 +465,6 @@ export default function App() {
     saveToDrive(updated);
     setShowAddModal(false);
 
-    // フォームリセット
     setFormData({
       code: '',
       name: '',
@@ -450,7 +516,7 @@ export default function App() {
             className="flex items-center gap-1 bg-white text-amber-800 text-[11px] font-black px-2.5 py-1 rounded-lg shadow-sm hover:bg-amber-50 active:scale-95 transition-transform"
           >
             <QrCode className="w-3.5 h-3.5 text-amber-600" />
-            <span>スマホで共有</span>
+            <span>家族に共有</span>
           </button>
           <button
             onClick={() => setShowSettingsModal(true)}
@@ -552,13 +618,30 @@ export default function App() {
             </div>
             <h1 className="text-2xl font-black tracking-tight mt-0.5">わたしの株・優待手帳</h1>
           </div>
-          <button 
-            onClick={() => setShowAddModal(true)}
-            className="bg-white text-amber-700 active:scale-95 transition-transform px-3.5 py-2.5 rounded-2xl font-bold text-xs shadow-md flex items-center gap-1.5 border border-amber-100"
-          >
-            <PlusCircle className="w-4 h-4 text-amber-600" />
-            <span>株を登録</span>
-          </button>
+
+          <div className="flex items-center gap-2">
+            {/* ★優待お知らせベルアイコン */}
+            <button
+              onClick={() => setShowNoticeModal(true)}
+              className="relative p-2.5 bg-white/20 hover:bg-white/30 rounded-2xl active:scale-95 transition-transform"
+              title="今月の優待お知らせ"
+            >
+              <Bell className="w-5 h-5 text-white" />
+              {currentMonthStocks.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-md animate-bounce">
+                  {currentMonthStocks.length}
+                </span>
+              )}
+            </button>
+
+            <button 
+              onClick={() => setShowAddModal(true)}
+              className="bg-white text-amber-700 active:scale-95 transition-transform px-3.5 py-2.5 rounded-2xl font-bold text-xs shadow-md flex items-center gap-1.5 border border-amber-100"
+            >
+              <PlusCircle className="w-4 h-4 text-amber-600" />
+              <span>株を登録</span>
+            </button>
+          </div>
         </div>
 
         {/* 資産とトータル利益のサマリーカード */}
@@ -585,26 +668,26 @@ export default function App() {
       </header>
 
       {/* 今月届く優待の速報バナー */}
-      {stocksByMonth(currentMonth).length > 0 && (
-        <div className="mx-4 mt-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200/90 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-2xl flex-shrink-0 shadow-sm">
+      {currentMonthStocks.length > 0 && (
+        <div 
+          onClick={() => setShowNoticeModal(true)}
+          className="mx-4 mt-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs cursor-pointer hover:border-amber-400 active:scale-98 transition-all"
+        >
+          <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-2xl flex-shrink-0 shadow-sm animate-pulse">
             🎁
           </div>
           <div className="flex-1">
-            <div className={`flex items-center gap-1 font-bold text-amber-800 ${fontStyles.subtitle}`}>
-              <Clock className="w-4 h-4 text-amber-600" />
+            <div className={`flex items-center gap-1 font-bold text-amber-900 ${fontStyles.subtitle}`}>
+              <BellRing className="w-4 h-4 text-amber-600" />
               <span>今月 ({currentMonth}月) 届く予定の優待！</span>
             </div>
             <p className={`text-slate-800 mt-0.5 font-bold line-clamp-1 ${fontStyles.body}`}>
-              {stocksByMonth(currentMonth).map(s => s.name).join('、')} から届きます
+              {currentMonthStocks.map(s => s.name).join('、')} から届きます
             </p>
           </div>
-          <button 
-            onClick={() => setActiveTab('calendar')}
-            className={`font-black text-amber-700 bg-white px-3 py-1.5 rounded-xl border border-amber-300 shadow-xs active:scale-95 ${fontStyles.badge}`}
-          >
-            見る
-          </button>
+          <span className={`font-black text-amber-700 bg-white px-3 py-1.5 rounded-xl border border-amber-300 shadow-xs ${fontStyles.badge}`}>
+            確認
+          </span>
         </div>
       )}
 
@@ -628,12 +711,16 @@ export default function App() {
               const profitTotal = diffPerShare * stock.shares;
               const isProfit = profitTotal >= 0;
               const profitRate = stock.buyPrice > 0 ? ((diffPerShare / stock.buyPrice) * 100).toFixed(1) : '0.0';
+              const isReceivedThisMonth = receivedYutai.includes(stock.id);
+              const isDeliveryThisMonth = stock.deliveryMonths && stock.deliveryMonths.includes(currentMonth);
 
               return (
                 <div 
                   key={stock.id}
                   onClick={() => setSelectedStock(stock)}
-                  className={`bg-white rounded-2xl ${fontStyles.cardPadding} shadow-sm border border-slate-200 hover:border-amber-400 transition-all cursor-pointer relative`}
+                  className={`bg-white rounded-2xl ${fontStyles.cardPadding} shadow-sm border ${
+                    isDeliveryThisMonth ? 'border-amber-300 ring-2 ring-amber-100' : 'border-slate-200'
+                  } hover:border-amber-400 transition-all cursor-pointer relative`}
                 >
                   {/* ヘッダー行：アイコン、銘柄名、保有数 */}
                   <div className="flex justify-between items-start">
@@ -713,16 +800,24 @@ export default function App() {
                   </div>
 
                   {/* 届く月と優待内容 */}
-                  <div className="mt-3 bg-amber-50/70 border border-amber-200/70 rounded-xl p-2.5">
+                  <div className={`mt-3 ${isDeliveryThisMonth ? 'bg-amber-100/70 border-amber-300' : 'bg-amber-50/70 border-amber-200/70'} border rounded-xl p-2.5`}>
                     <div className="flex items-center justify-between mb-1">
                       <span className={`font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md flex items-center gap-1 ${fontStyles.badge}`}>
                         <Gift className="w-3.5 h-3.5 text-amber-600" />
                         株主優待
                       </span>
-                      <span className={`font-bold text-orange-600 flex items-center gap-1 bg-orange-100/70 px-2 py-0.5 rounded-md ${fontStyles.badge}`}>
-                        <Calendar className="w-3.5 h-3.5" />
-                        届く時期: {stock.deliveryMonths ? stock.deliveryMonths.map(m => `${m}月`).join('・') : '未定'}
-                      </span>
+                      
+                      {/* 今月届くなら特別バッジ */}
+                      {isDeliveryThisMonth ? (
+                        <span className="text-xs font-black text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md flex items-center gap-1 animate-pulse">
+                          🔔 今月 ({currentMonth}月) 届く予定！
+                        </span>
+                      ) : (
+                        <span className={`font-bold text-orange-600 flex items-center gap-1 bg-orange-100/70 px-2 py-0.5 rounded-md ${fontStyles.badge}`}>
+                          <Calendar className="w-3.5 h-3.5" />
+                          届く時期: {stock.deliveryMonths ? stock.deliveryMonths.map(m => `${m}月`).join('・') : '未定'}
+                        </span>
+                      )}
                     </div>
                     <p className={`font-black text-slate-800 line-clamp-1 ${fontStyles.body}`}>
                       {stock.yutaiTitle}
@@ -784,17 +879,21 @@ export default function App() {
               <div className="grid grid-cols-6 gap-1.5 mt-4">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => {
                   const count = stocksByMonth(m).length;
-                  const isSelected = currentMonth === m;
+                  const isSelected = selectedCalMonth === m;
+                  const isNow = currentMonth === m;
                   return (
                     <button
                       key={m}
-                      onClick={() => setCurrentMonth(m)}
-                      className={`py-2 px-1 rounded-xl text-center flex flex-col items-center justify-center transition-all ${
+                      onClick={() => setSelectedCalMonth(m)}
+                      className={`py-2 px-1 rounded-xl text-center flex flex-col items-center justify-center transition-all relative ${
                         isSelected 
                           ? 'bg-amber-500 text-white font-bold shadow-md scale-105' 
                           : 'bg-slate-50 hover:bg-amber-50 text-slate-700'
                       }`}
                     >
+                      {isNow && (
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white"></span>
+                      )}
                       <span className="text-xs font-bold">{m}月</span>
                       <span className={`text-[10px] mt-0.5 px-1.5 rounded-full ${
                         isSelected ? 'bg-white/30 text-white' : count > 0 ? 'bg-amber-100 text-amber-800 font-bold' : 'text-slate-300'
@@ -811,24 +910,29 @@ export default function App() {
             <div className="space-y-3">
               <h3 className={`font-bold text-slate-700 px-1 flex items-center gap-2 ${fontStyles.subtitle}`}>
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
-                <span>{currentMonth}月に届く予定の優待 ({stocksByMonth(currentMonth).length}件)</span>
+                <span>{selectedCalMonth}月に届く予定の優待 ({stocksByMonth(selectedCalMonth).length}件)</span>
+                {selectedCalMonth === currentMonth && (
+                  <span className="text-[10px] bg-rose-100 text-rose-700 font-black px-2 py-0.5 rounded-full">
+                    今月！
+                  </span>
+                )}
               </h3>
 
-              {stocksByMonth(currentMonth).length === 0 ? (
+              {stocksByMonth(selectedCalMonth).length === 0 ? (
                 <div className="bg-white rounded-2xl p-8 text-center text-slate-400 border border-slate-200">
                   <div className="text-3xl mb-2">🍃</div>
                   <p className={`${fontStyles.subtitle} font-medium`}>この月に届く優待はまだありません</p>
                 </div>
               ) : (
-                stocksByMonth(currentMonth).map((stock) => (
+                stocksByMonth(selectedCalMonth).map((stock) => (
                   <div key={stock.id} className="bg-white rounded-2xl p-4 shadow-sm border border-amber-200/80">
                     <div className="flex items-center gap-3">
                       <span className="text-3xl p-2 bg-amber-50 rounded-2xl">{stock.icon}</span>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <h4 className={`${fontStyles.title} text-slate-800`}>{stock.name}</h4>
-                          <span className={`font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md ${fontStyles.badge}`}>
-                            {currentMonth}月届く
+                          <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md">
+                            {selectedCalMonth}月届く
                           </span>
                         </div>
                         <p className={`font-black text-amber-700 mt-1 ${fontStyles.body}`}>{stock.yutaiTitle}</p>
@@ -929,6 +1033,130 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* ★【新設】今月の優待お知らせモーダル（ベルアイコンタップまたは自動通知） */}
+      {showNoticeModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
+                  <BellRing className="w-5 h-5 text-amber-600 animate-pulse" />
+                </div>
+                <h3 className="text-base font-black text-slate-900">
+                  今月 ({currentMonth}月) 届く優待のお知らせ
+                </h3>
+              </div>
+              <button 
+                onClick={() => setShowNoticeModal(false)}
+                className="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center font-bold text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            {currentMonthStocks.length === 0 ? (
+              <div className="text-center py-6">
+                <div className="text-4xl mb-2">📬</div>
+                <p className="text-xs text-slate-500">
+                  今月 ({currentMonth}月) に届く予定の優待はありません。<br />
+                  カレンダーから来月以降の予定をご確認いただけます！
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 my-4">
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 font-bold flex items-center gap-2">
+                  <span>🎉</span>
+                  <span>今月は <strong>{currentMonthStocks.length}件</strong> の優待が届く予定です！</span>
+                </div>
+
+                {currentMonthStocks.map(stock => {
+                  const isReceived = receivedYutai.includes(stock.id);
+                  return (
+                    <div 
+                      key={stock.id}
+                      className={`p-3.5 rounded-2xl border transition-all ${
+                        isReceived ? 'bg-slate-50 border-slate-200 opacity-60' : 'bg-white border-amber-300 shadow-xs'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-2xl p-1 bg-amber-50 rounded-xl">{stock.icon}</span>
+                          <div>
+                            <h4 className="text-sm font-black text-slate-900">{stock.name}</h4>
+                            <span className="text-xs text-amber-700 font-bold">{stock.yutaiTitle}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="text-[11px] text-slate-600 mt-2 leading-relaxed">
+                        {stock.yutaiDetail}
+                      </p>
+
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <span className="text-[10px] text-slate-400 font-medium">届く目安: {currentMonth}月中</span>
+                        <button
+                          onClick={() => toggleReceived(stock.id)}
+                          className={`text-xs font-bold px-3 py-1 rounded-xl flex items-center gap-1 active:scale-95 transition-all ${
+                            isReceived 
+                              ? 'bg-emerald-100 text-emerald-800' 
+                              : 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs'
+                          }`}
+                        >
+                          {isReceived ? (
+                            <>
+                              <PackageCheck className="w-3.5 h-3.5" />
+                              <span>受取済み ✓</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>まだ届いていない（届いたら押す）</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* プッシュ通知設定ボタン */}
+            <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-700 flex items-center gap-1">
+                  <Smartphone className="w-3.5 h-3.5 text-slate-500" />
+                  <span>スマホの通知機能</span>
+                </span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                  notificationPermission === 'granted' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  {notificationPermission === 'granted' ? '通知ON' : '未設定'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-normal">
+                通知をONにすると、スマホを開いたときや優待月に画面にメッセージが届くようになります。
+              </p>
+              <button
+                onClick={handleRequestNotification}
+                className="w-full py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-2xs active:scale-95"
+              >
+                <Bell className="w-3.5 h-3.5 text-amber-600" />
+                <span>{notificationPermission === 'granted' ? '通知テストを送信する' : 'スマホの通知を許可する'}</span>
+              </button>
+            </div>
+
+            <div className="mt-4">
+              <button
+                onClick={() => setShowNoticeModal(false)}
+                className="w-full bg-amber-500 text-white font-bold text-xs py-3 rounded-xl shadow-md active:scale-95"
+              >
+                確認しました
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 買った値段のカンタン編集ポップアップ */}
       {editingPriceStock && (
@@ -1032,7 +1260,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* 価格・損益の超わかりやすい大画面カード */}
             <div className="mt-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-xs font-bold text-slate-500">価格と利益の内訳</span>
@@ -1067,7 +1294,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 利益の合計表示 */}
               {(() => {
                 const diffPerShare = selectedStock.currentPrice - selectedStock.buyPrice;
                 const profitTotal = diffPerShare * selectedStock.shares;
@@ -1090,7 +1316,6 @@ export default function App() {
               })()}
             </div>
 
-            {/* 優待ハイライト */}
             <div className="mt-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-amber-800 bg-amber-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
@@ -1109,7 +1334,6 @@ export default function App() {
               </p>
             </div>
 
-            {/* メモ */}
             <div className="mt-4 bg-amber-50/50 p-3.5 rounded-2xl border border-amber-100">
               <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
                 <span>📝 わたしのメモ</span>
@@ -1119,7 +1343,6 @@ export default function App() {
               </p>
             </div>
 
-            {/* 削除・閉じるボタン */}
             <div className="mt-6 flex justify-between items-center pt-3 border-t border-slate-100">
               <button
                 onClick={() => handleDelete(selectedStock.id)}
@@ -1198,7 +1421,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 買った時の価格入力欄 */}
               <div className="bg-amber-50/80 p-3.5 rounded-2xl border-2 border-amber-300/80 space-y-2">
                 <div className="text-xs font-black text-amber-950 flex items-center gap-1">
                   <Coins className="w-4 h-4 text-amber-600" />
@@ -1238,7 +1460,6 @@ export default function App() {
                 )}
               </div>
 
-              {/* 優待情報入力 */}
               <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1">
@@ -1280,7 +1501,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* アイコン選択 */}
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
                     アイコンを選ぶ
@@ -1389,7 +1609,6 @@ export default function App() {
                 </div>
               </form>
 
-              {/* 取得ガイド */}
               <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] space-y-1.5 text-slate-500">
                 <p className="font-bold text-slate-700">📌 クライアントIDの取得方法（竜馬さん用）:</p>
                 <ol className="list-decimal list-inside space-y-1 text-[10px] leading-relaxed">
@@ -1425,7 +1644,6 @@ export default function App() {
               スマホカメラで下のQRコードを読み取るか、URLをLINEで家族に送るだけで、誰でも24時間いつでも開けます！
             </p>
 
-            {/* QRコード画像表示 */}
             <div className="bg-amber-50 p-4 rounded-2xl border-2 border-amber-200 flex flex-col items-center justify-center">
               <img 
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href)}`} 
@@ -1437,7 +1655,6 @@ export default function App() {
               </span>
             </div>
 
-            {/* URLをLINE等で送るボタン */}
             <div className="mt-4">
               <button
                 onClick={() => {
@@ -1452,7 +1669,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* ホーム画面に追加するワンポイント */}
             <div className="mt-4 pt-3 border-t border-slate-100">
               <h4 className="text-xs font-black text-slate-800 mb-1.5 flex items-center gap-1">
                 <span>📲 ホーム画面にアイコンを置く方法</span>
