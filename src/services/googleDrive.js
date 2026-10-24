@@ -9,10 +9,16 @@ const FOLDER_NAME = 'myKabushikiList';
 const FILE_NAME = 'stocks_data.json';
 const DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 
-// 竜馬さんの Google OAuth クライアント ID
-export const DEFAULT_CLIENT_ID = 
-  localStorage.getItem('google_client_id') || 
-  '312182854566-ov4r92s6b72t0gbdbhhkodfnibo7fkm5.apps.googleusercontent.com';
+// 竜馬さんの新しい Google OAuth クライアント ID
+const LATEST_CLIENT_ID = '893698698949-issfhioino0t1to2iqqk275i2695ose7.apps.googleusercontent.com';
+
+// 古いIDがLocalStorageに残っている場合は自動でクリアして最新IDを適用
+const savedId = localStorage.getItem('google_client_id');
+if (savedId && savedId.startsWith('312182854566')) {
+  localStorage.setItem('google_client_id', LATEST_CLIENT_ID);
+}
+
+export const DEFAULT_CLIENT_ID = localStorage.getItem('google_client_id') || LATEST_CLIENT_ID;
 
 export class GoogleDriveService {
   constructor(clientId) {
@@ -158,7 +164,7 @@ export class GoogleDriveService {
     const content = JSON.stringify(stocks, null, 2);
 
     if (this.fileId) {
-      // 既存ファイルの更新 (PATCH /upload/drive/v3/files/{fileId}?uploadType=media)
+      // 既存ファイルの更新
       const res = await fetch(
         `https://www.googleapis.com/upload/drive/v3/files/${this.fileId}?uploadType=media`,
         {
