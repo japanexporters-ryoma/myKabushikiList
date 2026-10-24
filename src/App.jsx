@@ -548,7 +548,7 @@ export default function App() {
           <div>
             <div className="flex items-center gap-1.5 text-amber-100 text-xs font-semibold">
               <Smile className="w-4 h-4 text-amber-200" />
-              <span>お母さんのための</span>
+              <span>かんたん・あんしん</span>
             </div>
             <h1 className="text-2xl font-black tracking-tight mt-0.5">わたしの株・優待手帳</h1>
           </div>
@@ -743,7 +743,7 @@ export default function App() {
             {/* おすすめ優待銘柄 */}
             <div className="mt-6 pt-4 border-t border-dashed border-amber-200">
               <h3 className={`${fontStyles.subtitle} font-bold text-slate-600 mb-2 flex items-center gap-1.5`}>
-                <span>🌟 お母さんに人気の優待銘柄（ワンタップで追加）</span>
+                <span>🌟 初心者にも人気の優待銘柄（ワンタップで追加）</span>
               </h3>
               <div className="space-y-2">
                 {PRESET_STOCKS.map((preset) => (
@@ -856,14 +856,14 @@ export default function App() {
                 <h2 className="text-xl font-black">AI知恵袋（ワンポイント解説）</h2>
               </div>
               <p className={`text-indigo-100 mt-2 ${fontStyles.body}`}>
-                お母さんの持っている株の特徴や、優待を楽しく受け取るポイントをAIが分かりやすく教えます！
+                持っている株の特徴や、優待を楽しく受け取るポイントをAIが分かりやすく教えます！
               </p>
             </div>
 
             <div className={`bg-white rounded-3xl ${fontStyles.cardPadding} shadow-sm border border-slate-200 space-y-3`}>
               <h3 className={`${fontStyles.title} text-slate-800 flex items-center gap-2`}>
                 <Smile className="w-5 h-5 text-amber-500" />
-                <span>お母さんの投資のいいところ！</span>
+                <span>いまの投資バランスといいところ！</span>
               </h3>
               <div className={`text-slate-700 bg-amber-50/70 p-4 rounded-2xl border border-amber-200 ${fontStyles.body}`}>
                 「食事券」「お買い物割引」「カフェ」など、生活に密着した優待がしっかり揃っています！<br className="my-1.5" />
@@ -894,7 +894,7 @@ export default function App() {
 
               <div className={`p-4 bg-amber-50 rounded-2xl text-amber-950 border border-amber-200 ${fontStyles.body}`}>
                 <div className="font-black text-amber-900 mb-1">
-                  💖 お母さんへの安心アドバイス：
+                  💖 長期保有の安心アドバイス：
                 </div>
                 優待を楽しむ長期投資なら、日々の細かな株価の上下を気にしすぎず、<strong>「お買い物の割引やお食事券を楽しみにしながら、のんびり見守る」</strong>のが一番安心で楽しい投資法です！
               </div>
@@ -1109,10 +1109,10 @@ export default function App() {
               </p>
             </div>
 
-            {/* お母さんのメモ */}
+            {/* メモ */}
             <div className="mt-4 bg-amber-50/50 p-3.5 rounded-2xl border border-amber-100">
               <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                <span>📝 お母さんのメモ</span>
+                <span>📝 わたしのメモ</span>
               </span>
               <p className={`text-slate-700 mt-1 ${fontStyles.body}`}>
                 {selectedStock.memo || 'メモはまだありません'}
@@ -1350,7 +1350,7 @@ export default function App() {
                   <span>安心・安全の個人保存仕様</span>
                 </div>
                 <p className="leading-relaxed text-[11px] text-slate-700">
-                  お母様がGoogleログインすると、お母様ご自身のGoogleドライブの「<strong>myKabushikiList</strong>」フォルダの中にデータ（<code>stocks_data.json</code>）が直接保存されます。他の人に見られることはありません。
+                  Googleログインすると、ご自身のGoogleドライブの「<strong>myKabushikiList</strong>」フォルダの中にデータ（<code>stocks_data.json</code>）が直接保存されます。ご家族それぞれのアカウントで個別に安全に管理されます。
                 </p>
               </div>
 
@@ -1411,7 +1411,7 @@ export default function App() {
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
                 <Smartphone className="w-5 h-5 text-amber-500" />
-                <h3 className="text-base font-black text-slate-900">お母さんのスマホで使う</h3>
+                <h3 className="text-base font-black text-slate-900">スマホで使う・家族に共有</h3>
               </div>
               <button 
                 onClick={() => setShowQrModal(false)}
@@ -1422,7 +1422,7 @@ export default function App() {
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed mb-4">
-              お母さんのスマホカメラで下のQRコードを読み取るか、URLをLINEで送るだけで、離れていても24時間いつでも開けます！
+              スマホカメラで下のQRコードを読み取るか、URLをLINEで家族に送るだけで、誰でも24時間いつでも開けます！
             </p>
 
             {/* QRコード画像表示 */}
