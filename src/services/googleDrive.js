@@ -9,8 +9,10 @@ const FOLDER_NAME = 'myKabushikiList';
 const FILE_NAME = 'stocks_data.json';
 const DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 
-// 竜馬さんが取得したGoogle Client IDを設定する場所（ローカルストレージや環境変数からも上書き可能）
-export const DEFAULT_CLIENT_ID = localStorage.getItem('google_client_id') || '';
+// 竜馬さんの Google OAuth クライアント ID
+export const DEFAULT_CLIENT_ID = 
+  localStorage.getItem('google_client_id') || 
+  '312182854566-ov4r92s6b72t0gbdbhhkodfnibo7fkm5.apps.googleusercontent.com';
 
 export class GoogleDriveService {
   constructor(clientId) {

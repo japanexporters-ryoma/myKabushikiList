@@ -245,8 +245,7 @@ export default function App() {
 
   // Googleログイン実行
   const handleGoogleSignIn = () => {
-    const currentId = localStorage.getItem('google_client_id');
-    if (!currentId) {
+    if (!driveService.clientId) {
       setShowSettingsModal(true);
       return;
     }
