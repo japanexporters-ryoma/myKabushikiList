@@ -32,11 +32,15 @@ import {
   ShieldCheck,
   Bell,
   BellRing,
-  PackageCheck
+  PackageCheck,
+  BookOpen,
+  Printer,
+  Search,
+  CheckCircle2
 } from 'lucide-react';
 import { GoogleDriveService } from './services/googleDrive';
 
-// 初期サンプルデータ
+// 初期サンプルデータ（PCで見やすい充実した初期データ）
 const INITIAL_STOCKS = [
   {
     id: '1',
@@ -45,14 +49,18 @@ const INITIAL_STOCKS = [
     shares: 100,
     buyPrice: 2800,
     currentPrice: 3450,
+    prevClose: 3400,
+    change: 50,
+    changePercent: 1.47,
+    dividendYield: 1.2,
     yutaiTitle: 'お買い物 3%キャッシュバック',
-    yutaiDetail: 'イオンでのお買い物金額の3%が半年ごとに現金で戻ってくるオーナーズカード！映画割引もあり。',
+    yutaiDetail: '半年ごとのお買い物金額の3%が現金で返金。映画鑑賞割引もあり。',
     rightsMonths: [2, 8],
-    deliveryMonths: [4, 10],
+    deliveryMonths: [4, 10], // 権利月からおよそ2か月後
+    deliveryMemo: '4月下旬・10月下旬頃',
     category: '買い物割引',
     icon: '🛍️',
-    dividendYield: 1.2,
-    memo: '近所のイオンで毎週火曜市に行くときに必須！'
+    memo: '近所のイオンで火曜市に必須！'
   },
   {
     id: '2',
@@ -61,14 +69,18 @@ const INITIAL_STOCKS = [
     shares: 100,
     buyPrice: 1950,
     currentPrice: 2280,
-    yutaiTitle: 'お食事ご優待カード 2,000円分',
-    yutaiDetail: 'ガスト、バーミヤン、ジョナサン、夢庵などで使える電子マネーカード（年2回、計4,000円分）。',
+    prevClose: 2260,
+    change: 20,
+    changePercent: 0.88,
+    dividendYield: 0.8,
+    yutaiTitle: 'お食事券 2,000円分 (年2回)',
+    yutaiDetail: 'ガスト、バーミヤン、ジョナサンなどで使えるご優待カード（年計4,000円）。',
     rightsMonths: [6, 12],
-    deliveryMonths: [3, 9],
+    deliveryMonths: [9, 3], // 権利月からおよそ3か月後
+    deliveryMemo: '3月中旬・9月中旬頃',
     category: '食事券',
     icon: '🍽️',
-    dividendYield: 0.8,
-    memo: '孫たちとガストやバーミヤンに行くときに使う'
+    memo: '孫たちと外食する時に使う'
   },
   {
     id: '3',
@@ -77,14 +89,18 @@ const INITIAL_STOCKS = [
     shares: 100,
     buyPrice: 2400,
     currentPrice: 2710,
-    yutaiTitle: 'KOMECAチャージ 1,000円分',
-    yutaiDetail: 'コメダ珈琲店で使えるプリペイドカードに自動チャージ（年2回、計2,000円分）。',
-    rightsMonths: [2, 8],
-    deliveryMonths: [6, 12],
-    category: 'カフェ・飲食',
-    icon: '☕',
+    prevClose: 2690,
+    change: 20,
+    changePercent: 0.74,
     dividendYield: 1.9,
-    memo: 'お友達とモーニングに行く時の定番！'
+    yutaiTitle: 'KOMECA 1,000円分 (年2回)',
+    yutaiDetail: 'コメダ珈琲店で使えるプリペイドカードに自動チャージ（年計2,000円）。',
+    rightsMonths: [2, 8],
+    deliveryMonths: [5, 11], // 権利月からおよそ3か月後
+    deliveryMemo: '5月下旬・11月下旬頃',
+    category: 'カフェ',
+    icon: '☕',
+    memo: 'お友達とモーニングに行く時の定番'
   },
   {
     id: '4',
@@ -93,14 +109,18 @@ const INITIAL_STOCKS = [
     shares: 100,
     buyPrice: 2600,
     currentPrice: 2540,
+    prevClose: 2555,
+    change: -15,
+    changePercent: -0.59,
+    dividendYield: 2.8,
     yutaiTitle: '国内線 50%割引券 1枚',
-    yutaiDetail: '国内線普通運賃が半額になる株主優待券。旅行や帰省の際に便利。',
+    yutaiDetail: '国内線普通運賃が半額になる株主割引券。',
     rightsMonths: [3, 9],
-    deliveryMonths: [5, 11],
+    deliveryMonths: [5, 11], // 権利月からおよそ2か月後
+    deliveryMemo: '5月中旬・11月中旬頃',
     category: '旅行・交通',
     icon: '✈️',
-    dividendYield: 2.8,
-    memo: '北海道旅行に行くときに使う予定'
+    memo: '旅行や帰省の際に便利'
   }
 ];
 
@@ -110,42 +130,73 @@ const PRESET_STOCKS = [
     code: '2702',
     name: '日本マクドナルドHD',
     shares: 100,
-    currentPrice: 6500,
+    buyPrice: 6500,
+    currentPrice: 8330,
+    dividendYield: 0.7,
     yutaiTitle: '優待食事券 1冊 (6枚綴り)',
     yutaiDetail: 'バーガー、サイド、ドリンクの引換券がセットになった人気食事券（年2回）。',
     rightsMonths: [6, 12],
-    deliveryMonths: [3, 9],
+    deliveryMonths: [9, 3],
+    deliveryMemo: '3月下旬・9月下旬頃',
     category: '食事券',
-    icon: '🍔',
-    dividendYield: 0.7
+    icon: '🍔'
   },
   {
     code: '8591',
     name: 'オリックス',
     shares: 100,
-    currentPrice: 3200,
+    buyPrice: 3200,
+    currentPrice: 5732,
+    dividendYield: 3.2,
     yutaiTitle: 'ふるさと優待 (カタログギフト)',
     yutaiDetail: '全国の名産品から選べる豪華なカタログギフト。',
     rightsMonths: [3],
     deliveryMonths: [7],
-    category: 'ギフト・特産品',
-    icon: '🎁',
-    dividendYield: 3.2
+    deliveryMemo: '7月中旬頃',
+    category: 'ギフト',
+    icon: '🎁'
   },
   {
     code: '9433',
     name: 'KDDI',
     shares: 100,
-    currentPrice: 4800,
+    buyPrice: 3000,
+    currentPrice: 2866,
+    dividendYield: 3.0,
     yutaiTitle: 'Pontaポイント / 関連サービス優待',
     yutaiDetail: '日常の買い物やスマホ決済で使える便利なポイント還元。',
     rightsMonths: [3],
     deliveryMonths: [6],
-    category: 'ポイント・通信',
-    icon: '📱',
-    dividendYield: 3.0
+    deliveryMemo: '6月下旬頃',
+    category: '通信',
+    icon: '📱'
+  },
+  {
+    code: '7203',
+    name: 'トヨタ自動車',
+    shares: 100,
+    buyPrice: 2800,
+    currentPrice: 3105,
+    dividendYield: 2.8,
+    yutaiTitle: '配当金重視（安定配当）',
+    yutaiDetail: '日本を代表する自動車メーカー。配当金が年2回届きます。',
+    rightsMonths: [3, 9],
+    deliveryMonths: [6, 12],
+    deliveryMemo: '6月下旬・12月上旬頃',
+    category: '自動車',
+    icon: '🚗'
   }
 ];
+
+// 権利確定月から優待到着月（およそ2〜3か月後）を自動計算するヘルパー
+function calculateDefaultDeliveryMonths(rightsMonths) {
+  if (!rightsMonths || rightsMonths.length === 0) return [6];
+  return rightsMonths.map(m => {
+    let target = m + 3; // 3か月後を目安
+    if (target > 12) target -= 12;
+    return target;
+  });
+}
 
 const driveService = new GoogleDriveService();
 
@@ -157,41 +208,31 @@ export default function App() {
 
   // 文字サイズ設定 ('normal': 標準, 'large': 大きめ, 'huge': 特大)
   const [fontSizeMode, setFontSizeMode] = useState(() => {
-    return localStorage.getItem('kabushiki_font_size') || 'large';
+    return localStorage.getItem('kabushiki_font_size') || 'large'; // デフォルトはPCでも読みやすい「大きめ」
   });
 
-  const [activeTab, setActiveTab] = useState('list'); // 'list' | 'calendar' | 'ai'
-  const [selectedStock, setSelectedStock] = useState(null);
+  // モーダル開閉状態
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showQrModal, setShowQrModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [showNoticeModal, setShowNoticeModal] = useState(false);
-  const [copied, setCopied] = useState(false);
-  
-  // 今月
+  const [editingStock, setEditingStock] = useState(null); // 編集対象
+  const [showGuideModal, setShowGuideModal] = useState(false); // 使い方ガイド
+  const [showSettingsModal, setShowSettingsModal] = useState(false); // Google設定
+  const [showNoticeModal, setShowNoticeModal] = useState(false); // 今月の優待お知らせ
+  const [quickPriceEditStock, setQuickPriceEditStock] = useState(null); // 株価・購入値の簡単編集
+
+  // 株価更新ステート
+  const [isUpdatingPrices, setIsUpdatingPrices] = useState(false);
+  const [lastPriceUpdateTime, setLastPriceUpdateTime] = useState(() => {
+    return localStorage.getItem('last_price_update') || '未更新';
+  });
+
+  // Google Drive 連携ステート
+  const [googleUser, setGoogleUser] = useState(null);
+  const [syncStatus, setSyncStatus] = useState('idle');
+  const [clientIdInput, setClientIdInput] = useState(localStorage.getItem('google_client_id') || '');
+
+  // 現在の年月
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
-  const [selectedCalMonth, setSelectedCalMonth] = useState(currentMonth);
-
-  // 受取済み優待のID管理（LocalStorage）
-  const [receivedYutai, setReceivedYutai] = useState(() => {
-    const saved = localStorage.getItem(`received_yutai_${currentYear}_${currentMonth}`);
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // Google連携ステート
-  const [googleUser, setGoogleUser] = useState(null);
-  const [syncStatus, setSyncStatus] = useState('idle'); // 'idle' | 'syncing' | 'saved' | 'error'
-  const [clientIdInput, setClientIdInput] = useState(localStorage.getItem('google_client_id') || '');
-  const [isDriveReady, setIsDriveReady] = useState(false);
-  const [notificationPermission, setNotificationPermission] = useState(
-    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
-  );
-
-  // かんたん購入単価の直接変更モーダル
-  const [editingPriceStock, setEditingPriceStock] = useState(null);
-  const [tempBuyPrice, setTempBuyPrice] = useState('');
-  const [tempCurrentPrice, setTempCurrentPrice] = useState('');
 
   // フォーム用ステート
   const [formData, setFormData] = useState({
@@ -200,34 +241,24 @@ export default function App() {
     shares: 100,
     buyPrice: '',
     currentPrice: '',
+    dividendYield: 2.0,
     yutaiTitle: '',
     yutaiDetail: '',
-    rightsMonths: '3',
-    deliveryMonths: '6',
-    category: 'その他',
+    rightsMonths: '3, 9',
+    deliveryMonths: '6, 12',
+    deliveryMemo: '',
+    category: '一般',
     icon: '🎁',
     memo: ''
   });
 
-  // 今月届く優待のリスト
+  // 今月届く予定の銘柄
   const currentMonthStocks = stocks.filter(s => s.deliveryMonths && s.deliveryMonths.includes(currentMonth));
 
-  // アプリ初回読み込み時：今月届く優待があれば自動的にお知らせポップアップを表示（1日1回）
+  // 初回起動時に prices.json から最新株価を自動反映
   useEffect(() => {
-    if (currentMonthStocks.length > 0) {
-      const todayKey = `notice_seen_${currentYear}_${currentMonth}_${new Date().getDate()}`;
-      const hasSeenToday = localStorage.getItem(todayKey);
-      if (!hasSeenToday) {
-        setShowNoticeModal(true);
-        localStorage.setItem(todayKey, 'true');
-      }
-    }
-  }, [stocks.length]);
-
-  // 受取済み更新時にLocalStorageへ保存
-  useEffect(() => {
-    localStorage.setItem(`received_yutai_${currentYear}_${currentMonth}`, JSON.stringify(receivedYutai));
-  }, [receivedYutai, currentMonth, currentYear]);
+    updatePricesFromSource(false);
+  }, []);
 
   // Google Drive 初期化
   useEffect(() => {
@@ -247,8 +278,6 @@ export default function App() {
         console.error('Drive load error:', err);
         setSyncStatus('error');
       }
-    }).then(() => {
-      setIsDriveReady(true);
     });
   }, []);
 
@@ -261,7 +290,7 @@ export default function App() {
     localStorage.setItem('kabushiki_font_size', fontSizeMode);
   }, [fontSizeMode]);
 
-  // Googleドライブへ自動保存（ログイン時）
+  // Googleドライブへ自動保存
   const saveToDrive = async (newStocks) => {
     if (googleUser && driveService.accessToken) {
       setSyncStatus('syncing');
@@ -278,284 +307,279 @@ export default function App() {
     }
   };
 
-  // Googleログイン実行
-  const handleGoogleSignIn = () => {
-    if (!driveService.clientId) {
-      setShowSettingsModal(true);
-      return;
-    }
+  // ★株価を更新する関数（ステップ1＆2の核心機能）
+  const updatePricesFromSource = async (showToast = true) => {
+    setIsUpdatingPrices(true);
     try {
-      driveService.signIn();
+      // キャッシュ回避のタイムスタンプ付きで prices.json を取得
+      const res = await fetch(`./prices.json?t=${Date.now()}`);
+      if (res.ok) {
+        const data = await res.json();
+        const priceMap = data.prices || {};
+
+        setStocks(prevStocks => {
+          const updated = prevStocks.map(stock => {
+            const p = priceMap[stock.code];
+            if (p) {
+              return {
+                ...stock,
+                currentPrice: p.currentPrice || stock.currentPrice,
+                prevClose: p.previousClose || stock.prevClose || p.currentPrice,
+                change: p.change !== undefined ? p.change : (p.currentPrice - (stock.prevClose || p.currentPrice)),
+                changePercent: p.changePercent !== undefined ? p.changePercent : 0,
+                lastUpdated: p.updatedAt
+              };
+            }
+            return stock;
+          });
+          saveToDrive(updated);
+          return updated;
+        });
+
+        const now = new Date();
+        const timeStr = `${now.getMonth() + 1}/${now.getDate()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        setLastPriceUpdateTime(timeStr);
+        localStorage.setItem('last_price_update', timeStr);
+
+        if (showToast) {
+          alert(`✅ 株価を最新情報に更新しました！（${timeStr} 時点）`);
+        }
+      } else {
+        if (showToast) {
+          alert('株価データファイルを読み込めませんでした。後ほど再度お試しください。');
+        }
+      }
     } catch (e) {
-      if (e.message === 'CLIENT_ID_NOT_SET') {
-        setShowSettingsModal(true);
+      console.error('Price update error:', e);
+      if (showToast) {
+        alert('株価の更新中に通信エラーが発生しました。インターネット接続をご確認ください。');
       }
+    } finally {
+      setIsUpdatingPrices(false);
     }
   };
 
-  // ログアウト処理
-  const handleGoogleSignOut = () => {
-    if (window.confirm('Googleアカウントの連携を解除しますか？\n（スマートフォンのデータは残ります）')) {
-      driveService.accessToken = null;
-      driveService.userProfile = null;
-      setGoogleUser(null);
-      setSyncStatus('idle');
-    }
+  // 権利確定月が変更された時に、優待到着月（2〜3か月後）を自動計算して反映
+  const handleRightsMonthsChange = (val) => {
+    const months = val.split(',').map(m => Number(m.trim())).filter(n => !isNaN(n) && n >= 1 && n <= 12);
+    const autoDelivery = calculateDefaultDeliveryMonths(months);
+    const autoMemo = autoDelivery.map(m => `${m}月頃`).join('・');
+
+    setFormData(prev => ({
+      ...prev,
+      rightsMonths: val,
+      deliveryMonths: autoDelivery.join(', '),
+      deliveryMemo: autoMemo
+    }));
   };
 
-  // Client IDの保存
-  const handleSaveClientId = (e) => {
-    e.preventDefault();
-    const cleaned = clientIdInput.trim();
-    driveService.setClientId(cleaned);
-    setShowSettingsModal(false);
-    alert('GoogleクライアントIDを設定しました！「Googleでログイン」を押して連携をお試しください。');
-    driveService.init(async (token, profile) => {
-      setGoogleUser(profile);
-      setSyncStatus('syncing');
-      const driveData = await driveService.loadStocksData();
-      if (driveData && Array.isArray(driveData) && driveData.length > 0) {
-        setStocks(driveData);
-      } else {
-        await driveService.saveStocksData(stocks);
-      }
-      setSyncStatus('saved');
-    });
-  };
-
-  // プッシュ通知の許可とテスト送信
-  const handleRequestNotification = async () => {
-    if (!('Notification' in window)) {
-      alert('お使いのブラウザはプッシュ通知に対応していません。アプリ内の通知でお知らせします！');
-      return;
-    }
-    const perm = await Notification.requestPermission();
-    setNotificationPermission(perm);
-    if (perm === 'granted') {
-      const names = currentMonthStocks.map(s => s.name).join('、');
-      new Notification('🎁 今月届く優待のお知らせ！', {
-        body: currentMonthStocks.length > 0 
-          ? `今月 (${currentMonth}月) は ${names} から優待が届く予定です！` 
-          : `今月届く優待はありません。次回のお楽しみをお待ちください！`,
-        icon: 'https://api.iconify.design/lucide:gift.svg'
-      });
-      alert('通知をONにしました！今月届く優待の通知をテスト送信しました。');
-    } else {
-      alert('通知がブロックされました。ブラウザの設定で通知を許可してください。');
-    }
-  };
-
-  // 受取チェックのトグル
-  const toggleReceived = (stockId) => {
-    setReceivedYutai(prev => {
-      if (prev.includes(stockId)) {
-        return prev.filter(id => id !== stockId);
-      } else {
-        return [...prev, stockId];
-      }
-    });
-  };
-
-  // 文字サイズに応じたクラスヘルパー
-  const fontStyles = {
-    normal: {
-      body: 'text-xs leading-normal',
-      lead: 'text-sm leading-relaxed',
-      title: 'text-base font-bold',
-      subtitle: 'text-xs',
-      badge: 'text-[11px]',
-      cardPadding: 'p-4',
-    },
-    large: {
-      body: 'text-sm leading-relaxed',
-      lead: 'text-base leading-relaxed',
-      title: 'text-lg font-bold',
-      subtitle: 'text-sm',
-      badge: 'text-xs font-semibold',
-      cardPadding: 'p-4',
-    },
-    huge: {
-      body: 'text-base leading-loose font-medium',
-      lead: 'text-lg leading-relaxed font-bold',
-      title: 'text-xl font-black',
-      subtitle: 'text-base font-medium',
-      badge: 'text-sm font-bold',
-      cardPadding: 'p-5',
-    }
-  }[fontSizeMode];
-
-  // 合計資産・損益の計算
-  const totalValue = stocks.reduce((sum, s) => sum + (s.currentPrice * s.shares), 0);
-  const totalCost = stocks.reduce((sum, s) => sum + (s.buyPrice * s.shares), 0);
-  const totalProfit = totalValue - totalCost;
-  const profitPercentage = totalCost > 0 ? ((totalProfit / totalCost) * 100).toFixed(1) : '0.0';
-
-  // 削除処理
-  const handleDelete = (id) => {
-    if (window.confirm('この株式をリストから削除してもよろしいですか？')) {
-      const updated = stocks.filter(s => s.id !== id);
-      setStocks(updated);
-      saveToDrive(updated);
-      if (selectedStock && selectedStock.id === id) {
-        setSelectedStock(null);
-      }
-    }
-  };
-
-  // 買った値段の更新処理
-  const handleSavePriceEdit = (e) => {
-    e.preventDefault();
-    if (!editingPriceStock) return;
-
-    const newBuy = Number(tempBuyPrice);
-    const newCurrent = Number(tempCurrentPrice);
-
-    const updated = stocks.map(s => {
-      if (s.id === editingPriceStock.id) {
-        return {
-          ...s,
-          buyPrice: !isNaN(newBuy) && newBuy > 0 ? newBuy : s.buyPrice,
-          currentPrice: !isNaN(newCurrent) && newCurrent > 0 ? newCurrent : s.currentPrice,
-        };
-      }
-      return s;
-    });
-
-    setStocks(updated);
-    saveToDrive(updated);
-
-    if (selectedStock && selectedStock.id === editingPriceStock.id) {
-      setSelectedStock(prev => ({
-        ...prev,
-        buyPrice: !isNaN(newBuy) && newBuy > 0 ? newBuy : prev.buyPrice,
-        currentPrice: !isNaN(newCurrent) && newCurrent > 0 ? newCurrent : prev.currentPrice,
-      }));
-    }
-
-    setEditingPriceStock(null);
-  };
-
-  // 登録処理
+  // 銘柄の保存（追加または編集）
   const handleSaveStock = (e) => {
     e.preventDefault();
     if (!formData.name) return;
 
     const buyPrice = Number(formData.buyPrice) || 1000;
     const currentPrice = Number(formData.currentPrice) || buyPrice;
+    const rMonths = formData.rightsMonths.split(',').map(m => Number(m.trim())).filter(n => !isNaN(n) && n >= 1 && n <= 12);
+    const dMonths = formData.deliveryMonths.split(',').map(m => Number(m.trim())).filter(n => !isNaN(n) && n >= 1 && n <= 12);
 
-    const newStock = {
-      id: Date.now().toString(),
-      code: formData.code || '----',
-      name: formData.name,
-      shares: Number(formData.shares) || 100,
-      buyPrice: buyPrice,
-      currentPrice: currentPrice,
-      yutaiTitle: formData.yutaiTitle || '株主優待',
-      yutaiDetail: formData.yutaiDetail || '優待詳細は登録されていません',
-      rightsMonths: formData.rightsMonths.split(',').map(m => Number(m.trim())).filter(n => !isNaN(n) && n >= 1 && n <= 12),
-      deliveryMonths: formData.deliveryMonths.split(',').map(m => Number(m.trim())).filter(n => !isNaN(n) && n >= 1 && n <= 12),
-      category: formData.category,
-      icon: formData.icon || '🎁',
-      dividendYield: 2.0,
-      memo: formData.memo || ''
-    };
+    if (editingStock) {
+      // 編集更新
+      const updated = stocks.map(s => {
+        if (s.id === editingStock.id) {
+          return {
+            ...s,
+            code: formData.code || s.code,
+            name: formData.name,
+            shares: Number(formData.shares) || 100,
+            buyPrice: buyPrice,
+            currentPrice: currentPrice,
+            dividendYield: Number(formData.dividendYield) || 0,
+            yutaiTitle: formData.yutaiTitle || '株主優待',
+            yutaiDetail: formData.yutaiDetail || '',
+            rightsMonths: rMonths.length > 0 ? rMonths : s.rightsMonths,
+            deliveryMonths: dMonths.length > 0 ? dMonths : s.deliveryMonths,
+            deliveryMemo: formData.deliveryMemo || `${dMonths.join('・')}月頃`,
+            category: formData.category,
+            icon: formData.icon || s.icon,
+            memo: formData.memo || ''
+          };
+        }
+        return s;
+      });
+      setStocks(updated);
+      saveToDrive(updated);
+      setEditingStock(null);
+    } else {
+      // 新規追加
+      const newStock = {
+        id: Date.now().toString(),
+        code: formData.code || '----',
+        name: formData.name,
+        shares: Number(formData.shares) || 100,
+        buyPrice: buyPrice,
+        currentPrice: currentPrice,
+        prevClose: currentPrice,
+        change: 0,
+        changePercent: 0,
+        dividendYield: Number(formData.dividendYield) || 2.0,
+        yutaiTitle: formData.yutaiTitle || '株主優待',
+        yutaiDetail: formData.yutaiDetail || '優待内容の記載はありません',
+        rightsMonths: rMonths.length > 0 ? rMonths : [3],
+        deliveryMonths: dMonths.length > 0 ? dMonths : calculateDefaultDeliveryMonths(rMonths),
+        deliveryMemo: formData.deliveryMemo || '権利確定後2〜3ヶ月頃',
+        category: formData.category,
+        icon: formData.icon || '🎁',
+        memo: formData.memo || ''
+      };
+      const updated = [...stocks, newStock];
+      setStocks(updated);
+      saveToDrive(updated);
+    }
 
-    const updated = [...stocks, newStock];
-    setStocks(updated);
-    saveToDrive(updated);
     setShowAddModal(false);
-
-    setFormData({
-      code: '',
-      name: '',
-      shares: 100,
-      buyPrice: '',
-      currentPrice: '',
-      yutaiTitle: '',
-      yutaiDetail: '',
-      rightsMonths: '3',
-      deliveryMonths: '6',
-      category: 'その他',
-      icon: '🎁',
-      memo: ''
-    });
   };
 
-  // プリセット銘柄のワンタップ追加
+  // 編集モーダルを開く
+  const handleOpenEdit = (stock) => {
+    setEditingStock(stock);
+    setFormData({
+      code: stock.code || '',
+      name: stock.name || '',
+      shares: stock.shares || 100,
+      buyPrice: stock.buyPrice || '',
+      currentPrice: stock.currentPrice || '',
+      dividendYield: stock.dividendYield || 0,
+      yutaiTitle: stock.yutaiTitle || '',
+      yutaiDetail: stock.yutaiDetail || '',
+      rightsMonths: (stock.rightsMonths || []).join(', '),
+      deliveryMonths: (stock.deliveryMonths || []).join(', '),
+      deliveryMemo: stock.deliveryMemo || '',
+      category: stock.category || '一般',
+      icon: stock.icon || '🎁',
+      memo: stock.memo || ''
+    });
+    setShowAddModal(true);
+  };
+
+  // 削除処理
+  const handleDelete = (id, name) => {
+    if (window.confirm(`「${name}」をリストから削除してもよろしいですか？`)) {
+      const updated = stocks.filter(s => s.id !== id);
+      setStocks(updated);
+      saveToDrive(updated);
+    }
+  };
+
+  // ワンタップでプリセット銘柄を追加
   const handleAddPreset = (preset) => {
-    const buyPrice = prompt(`「${preset.name}」を1株いくらで買いましたか？\n（空欄の場合は現在の目安株価 ¥${preset.currentPrice.toLocaleString()} で登録されます）`, preset.currentPrice.toString());
-    
+    const buyPrice = prompt(`「${preset.name}」を1株いくらで買いましたか？\n（手元のメモの金額を入力してください）`, preset.currentPrice.toString());
     if (buyPrice === null) return;
 
-    const finalBuyPrice = Number(buyPrice) || preset.currentPrice;
-
+    const finalBuy = Number(buyPrice) || preset.currentPrice;
     const newStock = {
       ...preset,
       id: Date.now().toString(),
-      buyPrice: finalBuyPrice,
-      memo: 'おすすめ銘柄から追加しました'
+      buyPrice: finalBuy,
+      prevClose: preset.currentPrice,
+      change: 0,
+      changePercent: 0,
+      memo: '手元メモから追加'
     };
     const updated = [...stocks, newStock];
     setStocks(updated);
     saveToDrive(updated);
-    alert(`${preset.name} を手帳に追加しました！`);
+    alert(`${preset.name} を追加しました！`);
   };
 
-  // 届く月ごとの銘柄抽出
-  const stocksByMonth = (month) => {
-    return stocks.filter(s => s.deliveryMonths && s.deliveryMonths.includes(month));
-  };
+  // 合計計算
+  const totalValue = stocks.reduce((sum, s) => sum + (s.currentPrice * s.shares), 0);
+  const totalCost = stocks.reduce((sum, s) => sum + (s.buyPrice * s.shares), 0);
+  const totalProfit = totalValue - totalCost;
+  const profitPercentage = totalCost > 0 ? ((totalProfit / totalCost) * 100).toFixed(1) : '0.0';
+  const totalDayChange = stocks.reduce((sum, s) => sum + ((s.change || 0) * s.shares), 0);
+  const totalDividend = stocks.reduce((sum, s) => sum + Math.round((s.currentPrice * s.shares * (s.dividendYield || 0)) / 100), 0);
+
+  // 文字サイズクラス
+  const fontStyles = {
+    normal: {
+      tableText: 'text-sm',
+      priceText: 'text-base',
+      headerText: 'text-xs',
+      badge: 'text-xs',
+    },
+    large: {
+      tableText: 'text-base font-medium',
+      priceText: 'text-lg font-black',
+      headerText: 'text-sm font-bold',
+      badge: 'text-xs font-bold',
+    },
+    huge: {
+      tableText: 'text-lg font-bold',
+      priceText: 'text-xl font-black',
+      headerText: 'text-base font-black',
+      badge: 'text-sm font-black',
+    }
+  }[fontSizeMode];
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-slate-800 pb-28 max-w-md mx-auto shadow-xl relative border-x border-amber-100/60 font-sans">
-      {/* 最上部：文字サイズ ＆ 共有 ＆ 設定バー */}
-      <div className="bg-amber-600 text-amber-50 px-3 py-2 flex items-center justify-between border-b border-amber-500/40 sticky top-0 z-30 shadow-xs">
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setShowQrModal(true)}
-            className="flex items-center gap-1 bg-white text-amber-800 text-[11px] font-black px-2.5 py-1 rounded-lg shadow-sm hover:bg-amber-50 active:scale-95 transition-transform"
-          >
-            <QrCode className="w-3.5 h-3.5 text-amber-600" />
-            <span>家族に共有</span>
-          </button>
-          <button
-            onClick={() => setShowSettingsModal(true)}
-            title="Google Drive 連携設定"
-            className="p-1.5 rounded-lg bg-amber-700/60 hover:bg-amber-700 text-amber-100"
-          >
-            <Settings className="w-3.5 h-3.5" />
-          </button>
+    <div className="min-h-screen bg-[#F8F9FA] text-slate-800 font-sans pb-16">
+      {/* ページ最上部：グローバルツールバー */}
+      <div className="bg-slate-900 text-slate-100 px-6 py-2.5 flex items-center justify-between text-xs border-b border-slate-800 sticky top-0 z-40 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 font-bold text-amber-400">
+            <Smile className="w-4 h-4" />
+            <span>かんたん・あんしん株式管理</span>
+          </div>
+          <div className="hidden md:flex items-center gap-2 text-slate-400 text-xs">
+            <span>株価最終更新: <strong className="text-slate-200">{lastPriceUpdateTime}</strong></span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-1">
-          <div className="flex bg-amber-700/70 p-0.5 rounded-xl border border-amber-500/60 shadow-inner">
+        <div className="flex items-center gap-3">
+          {/* 使い方ガイドボタン */}
+          <button
+            onClick={() => setShowGuideModal(true)}
+            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-3 py-1 rounded-lg text-xs shadow-xs active:scale-95 transition-all"
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>📖 使い方ガイド (1枚でわかる)</span>
+          </button>
+
+          {/* Googleドライブ連携状態 */}
+          <button
+            onClick={() => {
+              if (!driveService.clientId) {
+                setShowSettingsModal(true);
+              } else {
+                driveService.signIn();
+              }
+            }}
+            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1 rounded-lg text-xs border border-slate-700"
+          >
+            <Cloud className={`w-3.5 h-3.5 ${googleUser ? 'text-emerald-400' : 'text-slate-400'}`} />
+            <span>{googleUser ? `${googleUser.name} のDriveに保存中` : 'Googleドライブ連携'}</span>
+            {syncStatus === 'syncing' && <span className="text-[10px] text-amber-300 animate-pulse">保存中</span>}
+            {syncStatus === 'saved' && <span className="text-[10px] text-emerald-400">✓</span>}
+          </button>
+
+          {/* 文字サイズトグル */}
+          <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700">
             <button
               onClick={() => setFontSizeMode('normal')}
-              className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all ${
-                fontSizeMode === 'normal' 
-                  ? 'bg-white text-amber-800 shadow-sm' 
-                  : 'text-amber-100 hover:text-white'
-              }`}
+              className={`px-2 py-0.5 rounded text-xs font-bold ${fontSizeMode === 'normal' ? 'bg-amber-500 text-slate-900 font-black' : 'text-slate-300'}`}
             >
               標準
             </button>
             <button
               onClick={() => setFontSizeMode('large')}
-              className={`px-2.5 py-0.5 rounded-lg text-xs font-black transition-all ${
-                fontSizeMode === 'large' 
-                  ? 'bg-white text-amber-800 shadow-sm' 
-                  : 'text-amber-100 hover:text-white'
-              }`}
+              className={`px-2.5 py-0.5 rounded text-xs font-bold ${fontSizeMode === 'large' ? 'bg-amber-500 text-slate-900 font-black' : 'text-slate-300'}`}
             >
               大きめ
             </button>
             <button
               onClick={() => setFontSizeMode('huge')}
-              className={`px-2.5 py-0.5 rounded-lg text-xs font-black transition-all ${
-                fontSizeMode === 'huge' 
-                  ? 'bg-white text-amber-800 shadow-sm ring-1 ring-yellow-300' 
-                  : 'text-amber-100 hover:text-white'
-              }`}
+              className={`px-2.5 py-0.5 rounded text-xs font-bold ${fontSizeMode === 'huge' ? 'bg-amber-500 text-slate-900 font-black' : 'text-slate-300'}`}
             >
               特大
             </button>
@@ -563,481 +587,725 @@ export default function App() {
         </div>
       </div>
 
-      {/* Google ドライブ同期状態バナー */}
-      <div className="bg-amber-500/20 border-b border-amber-200 px-4 py-2 flex items-center justify-between text-xs">
-        {googleUser ? (
-          <div className="flex items-center gap-2 flex-1">
-            {googleUser.picture ? (
-              <img src={googleUser.picture} alt="" className="w-5 h-5 rounded-full" />
-            ) : (
-              <Cloud className="w-4 h-4 text-emerald-600" />
-            )}
-            <div className="flex items-center gap-1 text-slate-700">
-              <span className="font-bold truncate max-w-[130px]">{googleUser.name || 'Google'}</span>
-              <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-1.5 py-0.5 rounded">
-                Drive/myKabushikiList
-              </span>
-            </div>
-            {syncStatus === 'syncing' && <span className="text-[10px] text-amber-700 animate-pulse">保存中...</span>}
-            {syncStatus === 'saved' && <span className="text-[10px] text-emerald-700 font-bold">✓ 保存済</span>}
-          </div>
-        ) : (
-          <div className="flex items-center justify-between w-full">
-            <span className="text-slate-600 text-[11px] flex items-center gap-1">
-              <Cloud className="w-3.5 h-3.5 text-slate-400" />
-              <span>Googleドライブに自動バックアップできます</span>
-            </span>
-            <button
-              onClick={handleGoogleSignIn}
-              className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-2xs flex items-center gap-1 active:scale-95"
-            >
-              <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="" className="w-3.5 h-3.5" />
-              <span>ログイン</span>
-            </button>
-          </div>
-        )}
-
-        {googleUser && (
-          <button 
-            onClick={handleGoogleSignOut}
-            title="連携解除"
-            className="text-slate-400 hover:text-rose-600 p-1"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
-
-      {/* ヘッダー */}
-      <header className="bg-gradient-to-b from-amber-500 to-amber-600 text-white px-5 pt-5 pb-6 shadow-md rounded-b-3xl">
-        <div className="flex items-center justify-between">
+      {/* メインヘッダー＆アクションエリア（PCで押しやすい大きなボタン） */}
+      <header className="bg-white border-b border-slate-200 shadow-2xs px-6 py-5">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-1.5 text-amber-100 text-xs font-semibold">
-              <Smile className="w-4 h-4 text-amber-200" />
-              <span>かんたん・あんしん</span>
-            </div>
-            <h1 className="text-2xl font-black tracking-tight mt-0.5">わたしの株・優待手帳</h1>
+            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <span>わたしの株・優待手帳</span>
+              <span className="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full">
+                {stocks.length}銘柄 登録中
+              </span>
+            </h1>
+            <p className="text-xs md:text-sm text-slate-500 mt-1">
+              持っている株式の現在値、前日比、評価損益、優待内容と届く時期がひと目で分かります。
+            </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* ★優待お知らせベルアイコン */}
+          {/* ★大きな操作ボタンエリア */}
+          <div className="flex items-center gap-3">
+            {/* 大きな株価更新ボタン */}
             <button
-              onClick={() => setShowNoticeModal(true)}
-              className="relative p-2.5 bg-white/20 hover:bg-white/30 rounded-2xl active:scale-95 transition-transform"
-              title="今月の優待お知らせ"
+              onClick={() => updatePricesFromSource(true)}
+              disabled={isUpdatingPrices}
+              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black px-6 py-3.5 rounded-2xl shadow-md flex items-center gap-2 text-base md:text-lg transition-all"
             >
-              <Bell className="w-5 h-5 text-white" />
-              {currentMonthStocks.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-md animate-bounce">
-                  {currentMonthStocks.length}
-                </span>
-              )}
+              <RefreshCw className={`w-5 h-5 ${isUpdatingPrices ? 'animate-spin' : ''}`} />
+              <span>{isUpdatingPrices ? '株価を取得中...' : '株価を最新に更新'}</span>
             </button>
 
-            <button 
-              onClick={() => setShowAddModal(true)}
-              className="bg-white text-amber-700 active:scale-95 transition-transform px-3.5 py-2.5 rounded-2xl font-bold text-xs shadow-md flex items-center gap-1.5 border border-amber-100"
+            {/* 銘柄登録ボタン */}
+            <button
+              onClick={() => {
+                setEditingStock(null);
+                setFormData({
+                  code: '',
+                  name: '',
+                  shares: 100,
+                  buyPrice: '',
+                  currentPrice: '',
+                  dividendYield: 2.0,
+                  yutaiTitle: '',
+                  yutaiDetail: '',
+                  rightsMonths: '3, 9',
+                  deliveryMonths: '6, 12',
+                  deliveryMemo: '',
+                  category: '一般',
+                  icon: '🎁',
+                  memo: ''
+                });
+                setShowAddModal(true);
+              }}
+              className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-black px-5 py-3.5 rounded-2xl shadow-md flex items-center gap-2 text-base md:text-lg transition-all"
             >
-              <PlusCircle className="w-4 h-4 text-amber-600" />
-              <span>株を登録</span>
+              <PlusCircle className="w-5 h-5" />
+              <span>＋ 銘柄を追加</span>
             </button>
-          </div>
-        </div>
-
-        {/* 資産とトータル利益のサマリーカード */}
-        <div className="mt-5 bg-white/95 backdrop-blur rounded-2xl p-4 text-slate-800 shadow-sm border border-amber-200/60">
-          <div className="flex justify-between items-baseline">
-            <span className={`${fontStyles.subtitle} font-bold text-slate-500`}>いまの保有総額</span>
-            <span className="text-2xl font-black text-slate-900 tracking-tight">
-              ¥{totalValue.toLocaleString()}
-            </span>
-          </div>
-
-          {/* 利益・損益のわかりやすいハイライト */}
-          <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between">
-            <span className={`${fontStyles.subtitle} font-bold text-slate-500`}>買った時からの利益</span>
-            <div className={`flex items-center gap-1 font-black ${fontStyles.body} px-2.5 py-1 rounded-xl ${
-              totalProfit >= 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
-            }`}>
-              {totalProfit >= 0 ? <ArrowUpRight className="w-4 h-4 text-emerald-600" /> : <ArrowDownRight className="w-4 h-4 text-rose-600" />}
-              <span>{totalProfit >= 0 ? '+' : ''}¥{totalProfit.toLocaleString()}</span>
-              <span className="text-xs font-bold opacity-80">({totalProfit >= 0 ? '+' : ''}{profitPercentage}%)</span>
-            </div>
           </div>
         </div>
       </header>
 
-      {/* 今月届く優待の速報バナー */}
-      {currentMonthStocks.length > 0 && (
-        <div 
-          onClick={() => setShowNoticeModal(true)}
-          className="mx-4 mt-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs cursor-pointer hover:border-amber-400 active:scale-98 transition-all"
-        >
-          <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-2xl flex-shrink-0 shadow-sm animate-pulse">
-            🎁
-          </div>
-          <div className="flex-1">
-            <div className={`flex items-center gap-1 font-bold text-amber-900 ${fontStyles.subtitle}`}>
-              <BellRing className="w-4 h-4 text-amber-600" />
-              <span>今月 ({currentMonth}月) 届く予定の優待！</span>
+      {/* サマリーダッシュボードカード */}
+      <section className="max-w-7xl mx-auto px-6 mt-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* 保有総額 */}
+          <div className="bg-white rounded-2xl p-4 md:p-5 border border-slate-200 shadow-xs">
+            <span className="text-xs font-bold text-slate-500">いまの保有総額 (評価額)</span>
+            <div className="text-2xl md:text-3xl font-black text-slate-900 mt-1">
+              ¥{totalValue.toLocaleString()}
             </div>
-            <p className={`text-slate-800 mt-0.5 font-bold line-clamp-1 ${fontStyles.body}`}>
-              {currentMonthStocks.map(s => s.name).join('、')} から届きます
-            </p>
+            <div className="text-xs text-slate-400 mt-1">購入元本: ¥{totalCost.toLocaleString()}</div>
           </div>
-          <span className={`font-black text-amber-700 bg-white px-3 py-1.5 rounded-xl border border-amber-300 shadow-xs ${fontStyles.badge}`}>
-            確認
-          </span>
-        </div>
-      )}
 
-      {/* メインコンテンツ */}
-      <main className="p-4">
-        {/* 1. 銘柄リストタブ */}
-        {activeTab === 'list' && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center px-1">
-              <h2 className={`font-black text-slate-800 flex items-center gap-1.5 ${fontStyles.title}`}>
-                <span>持っている株のリスト</span>
-                <span className="text-xs bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full font-bold">
-                  {stocks.length}銘柄
-                </span>
-              </h2>
-              <span className="text-xs text-slate-400 font-medium">タップして詳しく見る</span>
+          {/* トータル損益 */}
+          <div className={`rounded-2xl p-4 md:p-5 border shadow-xs ${
+            totalProfit >= 0 ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950' : 'bg-rose-50/70 border-rose-200 text-rose-950'
+          }`}>
+            <span className="text-xs font-bold opacity-80">買った時からのトータル利益</span>
+            <div className={`text-2xl md:text-3xl font-black mt-1 flex items-center gap-1 ${
+              totalProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'
+            }`}>
+              {totalProfit >= 0 ? <ArrowUpRight className="w-6 h-6" /> : <ArrowDownRight className="w-6 h-6" />}
+              <span>{totalProfit >= 0 ? '+' : ''}¥{totalProfit.toLocaleString()}</span>
             </div>
+            <div className="text-xs font-bold mt-1 opacity-80">
+              利益率: {totalProfit >= 0 ? '+' : ''}{profitPercentage}%
+            </div>
+          </div>
 
-            {stocks.map((stock) => {
-              const diffPerShare = stock.currentPrice - stock.buyPrice;
-              const profitTotal = diffPerShare * stock.shares;
-              const isProfit = profitTotal >= 0;
-              const profitRate = stock.buyPrice > 0 ? ((diffPerShare / stock.buyPrice) * 100).toFixed(1) : '0.0';
-              const isReceivedThisMonth = receivedYutai.includes(stock.id);
-              const isDeliveryThisMonth = stock.deliveryMonths && stock.deliveryMonths.includes(currentMonth);
+          {/* 前日比合計 */}
+          <div className="bg-white rounded-2xl p-4 md:p-5 border border-slate-200 shadow-xs">
+            <span className="text-xs font-bold text-slate-500">前日比 (保有株全体)</span>
+            <div className={`text-2xl md:text-3xl font-black mt-1 ${
+              totalDayChange >= 0 ? 'text-emerald-600' : 'text-rose-600'
+            }`}>
+              {totalDayChange >= 0 ? '+' : ''}¥{totalDayChange.toLocaleString()}
+            </div>
+            <div className="text-xs text-slate-400 mt-1">前日終値からの値動き</div>
+          </div>
 
-              return (
-                <div 
-                  key={stock.id}
-                  onClick={() => setSelectedStock(stock)}
-                  className={`bg-white rounded-2xl ${fontStyles.cardPadding} shadow-sm border ${
-                    isDeliveryThisMonth ? 'border-amber-300 ring-2 ring-amber-100' : 'border-slate-200'
-                  } hover:border-amber-400 transition-all cursor-pointer relative`}
+          {/* 年間予想配当金＆今月の優待 */}
+          <div className="bg-amber-50/80 rounded-2xl p-4 md:p-5 border border-amber-200 shadow-xs">
+            <div className="flex justify-between items-start">
+              <div>
+                <span className="text-xs font-bold text-amber-900">年間予想配当金（目安）</span>
+                <div className="text-2xl md:text-3xl font-black text-amber-950 mt-1">
+                  ¥{totalDividend.toLocaleString()}
+                </div>
+              </div>
+              {currentMonthStocks.length > 0 && (
+                <button
+                  onClick={() => setShowNoticeModal(true)}
+                  className="bg-rose-500 text-white text-xs font-black px-2.5 py-1 rounded-xl shadow-xs animate-bounce"
                 >
-                  {/* ヘッダー行：アイコン、銘柄名、保有数 */}
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-2xl p-2 bg-amber-50 rounded-2xl border border-amber-100/80">{stock.icon}</span>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <h3 className={`${fontStyles.title} text-slate-900 leading-tight`}>{stock.name}</h3>
-                          <span className="text-[11px] font-mono font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-                            {stock.code}
-                          </span>
-                        </div>
-                        <span className={`${fontStyles.subtitle} text-slate-500 font-bold`}>
-                          {stock.shares}株 保有
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* いまの評価額 */}
-                    <div className="text-right">
-                      <div className="text-base font-black text-slate-900">
-                        ¥{(stock.currentPrice * stock.shares).toLocaleString()}
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-medium">いまの評価額</span>
-                    </div>
-                  </div>
-
-                  {/* 買った株価 vs いまの株価 と 利益の比較ボックス */}
-                  <div className="mt-3.5 bg-slate-50 border border-slate-200/90 rounded-2xl p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`font-bold text-slate-600 ${fontStyles.subtitle}`}>1株の価格比較</span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingPriceStock(stock);
-                          setTempBuyPrice(stock.buyPrice.toString());
-                          setTempCurrentPrice(stock.currentPrice.toString());
-                        }}
-                        className={`text-amber-800 bg-amber-100 hover:bg-amber-200 font-black px-2.5 py-1 rounded-lg flex items-center gap-1 active:scale-95 ${fontStyles.badge}`}
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        <span>買った値段を変更</span>
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="bg-white p-2.5 rounded-xl border border-slate-200/70">
-                        <span className={`text-slate-500 block font-medium ${fontStyles.subtitle}`}>買ったときの価格</span>
-                        <span className={`${fontStyles.title} text-slate-800`}>
-                          ¥{stock.buyPrice.toLocaleString()} <span className="text-xs font-normal text-slate-500">/株</span>
-                        </span>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-slate-200/70">
-                        <span className={`text-slate-500 block font-medium ${fontStyles.subtitle}`}>いまの価格</span>
-                        <span className={`${fontStyles.title} text-slate-800`}>
-                          ¥{stock.currentPrice.toLocaleString()} <span className="text-xs font-normal text-slate-500">/株</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* 利益の計算結果 */}
-                    <div className={`mt-2.5 p-2.5 rounded-xl flex items-center justify-between font-black ${
-                      isProfit ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
-                    }`}>
-                      <span className={`flex items-center gap-1 ${fontStyles.body}`}>
-                        {isProfit ? '🎉 利益（プラス）' : '📉 差額（マイナス）'}
-                      </span>
-                      <div className="text-right">
-                        <span className={`${fontStyles.title}`}>
-                          {isProfit ? '+' : ''}¥{profitTotal.toLocaleString()}
-                        </span>
-                        <span className={`${fontStyles.badge} ml-1 opacity-80`}>
-                          ({isProfit ? '+' : ''}{profitRate}%)
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 届く月と優待内容 */}
-                  <div className={`mt-3 ${isDeliveryThisMonth ? 'bg-amber-100/70 border-amber-300' : 'bg-amber-50/70 border-amber-200/70'} border rounded-xl p-2.5`}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md flex items-center gap-1 ${fontStyles.badge}`}>
-                        <Gift className="w-3.5 h-3.5 text-amber-600" />
-                        株主優待
-                      </span>
-                      
-                      {/* 今月届くなら特別バッジ */}
-                      {isDeliveryThisMonth ? (
-                        <span className="text-xs font-black text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md flex items-center gap-1 animate-pulse">
-                          🔔 今月 ({currentMonth}月) 届く予定！
-                        </span>
-                      ) : (
-                        <span className={`font-bold text-orange-600 flex items-center gap-1 bg-orange-100/70 px-2 py-0.5 rounded-md ${fontStyles.badge}`}>
-                          <Calendar className="w-3.5 h-3.5" />
-                          届く時期: {stock.deliveryMonths ? stock.deliveryMonths.map(m => `${m}月`).join('・') : '未定'}
-                        </span>
-                      )}
-                    </div>
-                    <p className={`font-black text-slate-800 line-clamp-1 ${fontStyles.body}`}>
-                      {stock.yutaiTitle}
-                    </p>
-                  </div>
-
-                  {/* メモ */}
-                  {stock.memo && (
-                    <div className={`mt-2 text-slate-600 italic bg-slate-50 p-2 rounded-lg flex items-center gap-1.5 ${fontStyles.body}`}>
-                      <span>✏️</span>
-                      <span className="line-clamp-1">{stock.memo}</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {/* おすすめ優待銘柄 */}
-            <div className="mt-6 pt-4 border-t border-dashed border-amber-200">
-              <h3 className={`${fontStyles.subtitle} font-bold text-slate-600 mb-2 flex items-center gap-1.5`}>
-                <span>🌟 初心者にも人気の優待銘柄（ワンタップで追加）</span>
-              </h3>
-              <div className="space-y-2">
-                {PRESET_STOCKS.map((preset) => (
-                  <div key={preset.code} className="bg-amber-50/50 border border-amber-200/60 rounded-xl p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-2xl">{preset.icon}</span>
-                      <div>
-                        <div className={`font-black text-slate-800 ${fontStyles.subtitle}`}>{preset.name} ({preset.code})</div>
-                        <div className={`text-slate-500 line-clamp-1 ${fontStyles.badge}`}>{preset.yutaiTitle}</div>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => handleAddPreset(preset)}
-                      className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-xs"
-                    >
-                      追加
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 2. 優待カレンダー（月別）タブ */}
-        {activeTab === 'calendar' && (
-          <div className="space-y-4">
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
-              <h2 className={`${fontStyles.title} text-slate-800 mb-1 flex items-center gap-2`}>
-                <Calendar className="w-5 h-5 text-amber-500" />
-                <span>優待が届く月カレンダー</span>
-              </h2>
-              <p className={`text-slate-500 ${fontStyles.subtitle}`}>
-                何月にどんな優待が届くかをまとめました！毎月のお楽しみにどうぞ。
-              </p>
-
-              {/* 月セレクター */}
-              <div className="grid grid-cols-6 gap-1.5 mt-4">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => {
-                  const count = stocksByMonth(m).length;
-                  const isSelected = selectedCalMonth === m;
-                  const isNow = currentMonth === m;
-                  return (
-                    <button
-                      key={m}
-                      onClick={() => setSelectedCalMonth(m)}
-                      className={`py-2 px-1 rounded-xl text-center flex flex-col items-center justify-center transition-all relative ${
-                        isSelected 
-                          ? 'bg-amber-500 text-white font-bold shadow-md scale-105' 
-                          : 'bg-slate-50 hover:bg-amber-50 text-slate-700'
-                      }`}
-                    >
-                      {isNow && (
-                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white"></span>
-                      )}
-                      <span className="text-xs font-bold">{m}月</span>
-                      <span className={`text-[10px] mt-0.5 px-1.5 rounded-full ${
-                        isSelected ? 'bg-white/30 text-white' : count > 0 ? 'bg-amber-100 text-amber-800 font-bold' : 'text-slate-300'
-                      }`}>
-                        {count > 0 ? `${count}件` : '-'}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 選択された月に届く優待一覧 */}
-            <div className="space-y-3">
-              <h3 className={`font-bold text-slate-700 px-1 flex items-center gap-2 ${fontStyles.subtitle}`}>
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
-                <span>{selectedCalMonth}月に届く予定の優待 ({stocksByMonth(selectedCalMonth).length}件)</span>
-                {selectedCalMonth === currentMonth && (
-                  <span className="text-[10px] bg-rose-100 text-rose-700 font-black px-2 py-0.5 rounded-full">
-                    今月！
-                  </span>
-                )}
-              </h3>
-
-              {stocksByMonth(selectedCalMonth).length === 0 ? (
-                <div className="bg-white rounded-2xl p-8 text-center text-slate-400 border border-slate-200">
-                  <div className="text-3xl mb-2">🍃</div>
-                  <p className={`${fontStyles.subtitle} font-medium`}>この月に届く優待はまだありません</p>
-                </div>
-              ) : (
-                stocksByMonth(selectedCalMonth).map((stock) => (
-                  <div key={stock.id} className="bg-white rounded-2xl p-4 shadow-sm border border-amber-200/80">
-                    <div className="flex items-center gap-3">
-                      <span className="text-3xl p-2 bg-amber-50 rounded-2xl">{stock.icon}</span>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <h4 className={`${fontStyles.title} text-slate-800`}>{stock.name}</h4>
-                          <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md">
-                            {selectedCalMonth}月届く
-                          </span>
-                        </div>
-                        <p className={`font-black text-amber-700 mt-1 ${fontStyles.body}`}>{stock.yutaiTitle}</p>
-                        <p className={`text-slate-600 mt-1 leading-relaxed ${fontStyles.body}`}>{stock.yutaiDetail}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 pt-2 border-t border-slate-100 flex justify-between text-xs text-slate-400 font-medium">
-                      <span>権利確定月: {stock.rightsMonths ? stock.rightsMonths.map(m => `${m}月`).join('・') : '-'}</span>
-                      <span>保有: {stock.shares}株</span>
-                    </div>
-                  </div>
-                ))
+                  🎁 {currentMonth}月届く: {currentMonthStocks.length}件
+                </button>
               )}
             </div>
+            <div className="text-xs text-amber-800/80 mt-1">
+              今月届く優待: {currentMonthStocks.length > 0 ? currentMonthStocks.map(s => s.name).join('、') : '予定なし'}
+            </div>
           </div>
-        )}
+        </div>
+      </section>
 
-        {/* 3. AIアドバイス・予測・診断タブ */}
-        {activeTab === 'ai' && (
-          <div className="space-y-4">
-            <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-amber-600 text-white rounded-3xl p-5 shadow-lg">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-7 h-7 text-yellow-300" />
-                <h2 className="text-xl font-black">AI知恵袋（ワンポイント解説）</h2>
-              </div>
-              <p className={`text-indigo-100 mt-2 ${fontStyles.body}`}>
-                持っている株の特徴や、優待を楽しく受け取るポイントをAIが分かりやすく教えます！
-              </p>
+      {/* メイン：PC向け株式一覧テーブル */}
+      <main className="max-w-7xl mx-auto px-6 mt-6">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+          {/* テーブルヘッダー操作部 */}
+          <div className="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50/60">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base md:text-lg font-black text-slate-900">
+                保有銘柄一覧表
+              </h2>
+              <span className="text-xs text-slate-500 font-medium">
+                （価格や株数をクリックするとその場で変更できます）
+              </span>
             </div>
 
-            <div className={`bg-white rounded-3xl ${fontStyles.cardPadding} shadow-sm border border-slate-200 space-y-3`}>
-              <h3 className={`${fontStyles.title} text-slate-800 flex items-center gap-2`}>
-                <Smile className="w-5 h-5 text-amber-500" />
-                <span>いまの投資バランスといいところ！</span>
-              </h3>
-              <div className={`text-slate-700 bg-amber-50/70 p-4 rounded-2xl border border-amber-200 ${fontStyles.body}`}>
-                「食事券」「お買い物割引」「カフェ」など、生活に密着した優待がしっかり揃っています！<br className="my-1.5" />
-                株価の上下で一時的にマイナスになっても、毎年優待や配当をもらい続けることで、長く持つほど実質トータルでお得になっていきますよ。
-              </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-slate-400">※「株価を最新に更新」ボタンを押すと、市場価格と前日比が一括更新されます</span>
             </div>
+          </div>
 
-            <div className={`bg-white rounded-3xl ${fontStyles.cardPadding} shadow-sm border border-slate-200 space-y-3`}>
-              <div className="flex items-center gap-1.5 text-indigo-600 font-black text-sm">
-                <Info className="w-5 h-5" />
-                <span>AIによる株価予測ってどうなの？</span>
-              </div>
+          {/* 一覧テーブル本体 */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 font-bold">
+                  <th className={`py-3.5 px-4 ${fontStyles.headerText}`}>銘柄コード / 会社名</th>
+                  <th className={`py-3.5 px-3 text-right ${fontStyles.headerText}`}>保有株数</th>
+                  <th className={`py-3.5 px-3 text-right ${fontStyles.headerText}`}>購入単価</th>
+                  <th className={`py-3.5 px-4 text-right ${fontStyles.headerText} bg-amber-50/40 text-amber-950 font-black`}>
+                    現在値 (株価)
+                  </th>
+                  <th className={`py-3.5 px-3 text-right ${fontStyles.headerText}`}>前日比</th>
+                  <th className={`py-3.5 px-4 text-right ${fontStyles.headerText}`}>評価額</th>
+                  <th className={`py-3.5 px-4 text-right ${fontStyles.headerText}`}>評価損益</th>
+                  <th className={`py-3.5 px-3 text-center ${fontStyles.headerText}`}>配当利回り</th>
+                  <th className={`py-3.5 px-3 text-center ${fontStyles.headerText}`}>権利月</th>
+                  <th className={`py-3.5 px-4 text-center ${fontStyles.headerText} bg-orange-50/40 text-orange-950`}>
+                    📮 優待到着予定
+                  </th>
+                  <th className={`py-3.5 px-5 ${fontStyles.headerText}`}>株主優待の内容</th>
+                  <th className={`py-3.5 px-3 text-center ${fontStyles.headerText}`}>操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {stocks.map((stock) => {
+                  const profit = (stock.currentPrice - stock.buyPrice) * stock.shares;
+                  const isProfit = profit >= 0;
+                  const profitRate = stock.buyPrice > 0 ? (((stock.currentPrice - stock.buyPrice) / stock.buyPrice) * 100).toFixed(1) : '0.0';
+                  const isDayPlus = (stock.change || 0) >= 0;
+                  const isDeliveryThisMonth = stock.deliveryMonths && stock.deliveryMonths.includes(currentMonth);
 
-              <h4 className={`${fontStyles.title} text-slate-900 leading-snug`}>
-                「明日の株価」を100%当てるのはAIでも難しいけれど…
-              </h4>
+                  return (
+                    <tr 
+                      key={stock.id} 
+                      className={`hover:bg-amber-50/30 transition-colors ${isDeliveryThisMonth ? 'bg-amber-50/20' : ''}`}
+                    >
+                      {/* 銘柄コード・会社名 */}
+                      <td className="py-4 px-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-2xl p-1 bg-amber-50 rounded-xl border border-amber-100">
+                            {stock.icon || '🎁'}
+                          </span>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`font-black text-slate-900 ${fontStyles.tableText}`}>
+                                {stock.name}
+                              </span>
+                              <span className="font-mono text-xs font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                                {stock.code}
+                              </span>
+                            </div>
+                            {stock.memo && (
+                              <div className="text-xs text-slate-400 italic line-clamp-1 mt-0.5">
+                                📝 {stock.memo}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
 
-              <p className={`text-slate-700 ${fontStyles.body}`}>
-                株価は世界中のニュースや景気の波で動くため、未来を完全に当てる魔法はありません。
-              </p>
+                      {/* 株数 */}
+                      <td className={`py-4 px-3 text-right whitespace-nowrap font-bold text-slate-700 ${fontStyles.tableText}`}>
+                        {stock.shares}株
+                      </td>
 
-              <div className={`p-4 bg-indigo-50/80 rounded-2xl text-indigo-950 border border-indigo-200 ${fontStyles.body}`}>
-                <div className="font-black text-indigo-900 mb-1 flex items-center gap-1">
-                  <span>💡 AIが得意なこと：</span>
-                </div>
-                過去の業績の推移や、「優待がもらえる月に向かって株価が上がりやすい傾向」を分析することはAIの得意分野です！
-              </div>
+                      {/* 購入単価 */}
+                      <td className="py-4 px-3 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => setQuickPriceEditStock(stock)}
+                          title="クリックして購入単価を変更"
+                          className="hover:underline font-bold text-slate-700 flex items-center justify-end gap-1 ml-auto group"
+                        >
+                          <span className={fontStyles.tableText}>¥{stock.buyPrice.toLocaleString()}</span>
+                          <Edit3 className="w-3 h-3 text-slate-300 group-hover:text-amber-600" />
+                        </button>
+                      </td>
 
-              <div className={`p-4 bg-amber-50 rounded-2xl text-amber-950 border border-amber-200 ${fontStyles.body}`}>
-                <div className="font-black text-amber-900 mb-1">
-                  💖 長期保有の安心アドバイス：
-                </div>
-                優待を楽しむ長期投資なら、日々の細かな株価の上下を気にしすぎず、<strong>「お買い物の割引やお食事券を楽しみにしながら、のんびり見守る」</strong>のが一番安心で楽しい投資法です！
-              </div>
-            </div>
+                      {/* 現在値 */}
+                      <td className="py-4 px-4 text-right whitespace-nowrap bg-amber-50/30">
+                        <button
+                          onClick={() => setQuickPriceEditStock(stock)}
+                          title="手動で株価を修正"
+                          className="hover:underline font-black text-slate-900 flex items-center justify-end gap-1 ml-auto group"
+                        >
+                          <span className={fontStyles.priceText}>¥{stock.currentPrice.toLocaleString()}</span>
+                          <Edit3 className="w-3 h-3 text-slate-300 group-hover:text-amber-600" />
+                        </button>
+                      </td>
 
-            {/* 保有銘柄ごとのAI解説 */}
-            <div className="space-y-3 pt-1">
-              <h3 className={`${fontStyles.subtitle} font-black text-slate-700 px-1`}>
-                銘柄ごとのAIワンポイントメモ
-              </h3>
-              {stocks.map(s => (
-                <div key={s.id} className={`bg-white rounded-2xl ${fontStyles.cardPadding} border border-slate-200 shadow-xs flex items-start gap-3`}>
-                  <span className="text-3xl p-1 bg-amber-50 rounded-xl">{s.icon}</span>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className={`${fontStyles.title} text-slate-900`}>{s.name}</span>
-                      <span className="text-[11px] text-amber-800 bg-amber-100 font-bold px-2 py-0.5 rounded-full">
-                        優待＋配当
-                      </span>
+                      {/* 前日比 */}
+                      <td className="py-4 px-3 text-right whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md font-bold ${fontStyles.badge} ${
+                          isDayPlus ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {isDayPlus ? '+' : ''}{stock.change !== undefined ? stock.change : 0}円
+                          <span className="opacity-80">({isDayPlus ? '+' : ''}{stock.changePercent !== undefined ? stock.changePercent : 0}%)</span>
+                        </span>
+                      </td>
+
+                      {/* 評価額 */}
+                      <td className={`py-4 px-4 text-right whitespace-nowrap font-black text-slate-900 ${fontStyles.tableText}`}>
+                        ¥{(stock.currentPrice * stock.shares).toLocaleString()}
+                      </td>
+
+                      {/* 評価損益 */}
+                      <td className="py-4 px-4 text-right whitespace-nowrap">
+                        <div className={`font-black ${fontStyles.priceText} ${isProfit ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {isProfit ? '+' : ''}¥{profit.toLocaleString()}
+                        </div>
+                        <div className={`text-xs font-bold ${isProfit ? 'text-emerald-700' : 'text-rose-700'}`}>
+                          {isProfit ? '+' : ''}{profitRate}%
+                        </div>
+                      </td>
+
+                      {/* 配当利回り */}
+                      <td className={`py-4 px-3 text-center whitespace-nowrap font-bold text-slate-600 ${fontStyles.tableText}`}>
+                        {stock.dividendYield ? `${stock.dividendYield}%` : '-'}
+                      </td>
+
+                      {/* 権利確定月 */}
+                      <td className={`py-4 px-3 text-center whitespace-nowrap font-bold text-slate-700 ${fontStyles.tableText}`}>
+                        {stock.rightsMonths ? stock.rightsMonths.map(m => `${m}月`).join('・') : '-'}
+                      </td>
+
+                      {/* 優待到着予定 */}
+                      <td className="py-4 px-4 text-center whitespace-nowrap bg-orange-50/30">
+                        {isDeliveryThisMonth ? (
+                          <span className="inline-flex items-center gap-1 bg-rose-500 text-white font-black px-2.5 py-1 rounded-xl text-xs animate-pulse">
+                            🎁 今月届く！
+                          </span>
+                        ) : (
+                          <span className="text-xs font-bold text-orange-800 bg-orange-100/80 px-2.5 py-1 rounded-lg">
+                            {stock.deliveryMemo || (stock.deliveryMonths ? `${stock.deliveryMonths.map(m => `${m}月`).join('・')}頃` : '未定')}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* 優待内容 */}
+                      <td className="py-4 px-5 max-w-xs">
+                        <div className={`font-bold text-slate-900 line-clamp-1 ${fontStyles.tableText}`}>
+                          {stock.yutaiTitle}
+                        </div>
+                        {stock.yutaiDetail && (
+                          <div className="text-xs text-slate-500 line-clamp-1 mt-0.5">
+                            {stock.yutaiDetail}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* 操作 */}
+                      <td className="py-4 px-3 text-center whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => handleOpenEdit(stock)}
+                            className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-100 rounded-lg transition-colors"
+                            title="編集"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(stock.id, stock.name)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                            title="削除"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* 表の下部：かんたんプリセット追加 */}
+          <div className="p-6 bg-slate-50 border-t border-slate-200">
+            <h3 className="text-sm font-black text-slate-700 mb-3 flex items-center gap-1.5">
+              <span>🌟 初心者にも人気の定番優待銘柄（クリックで簡単追加）</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              {PRESET_STOCKS.map(preset => (
+                <div key={preset.code} className="bg-white p-3 rounded-2xl border border-slate-200 flex items-center justify-between shadow-2xs hover:border-amber-300 transition-all">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{preset.icon}</span>
+                    <div>
+                      <div className="text-xs font-black text-slate-900">{preset.name} ({preset.code})</div>
+                      <div className="text-[11px] text-slate-500 line-clamp-1">{preset.yutaiTitle}</div>
                     </div>
-                    <p className={`text-slate-700 ${fontStyles.body}`}>
-                      {s.code === '8267' && '普段のお買い物が実質割引になるため、イオンを使うほど家計の節約効果が高い人気銘柄です。'}
-                      {s.code === '3197' && '家族や友人とのお食事に便利。権利確定月（6月・12月）の直前は優待狙いの買いが入りやすい傾向があります。'}
-                      {s.code === '3543' && 'モーニングやカフェ利用で大活躍。業績も堅調で、優待の廃止リスクが比較的低い安心銘柄の一つです。'}
-                      {s.code === '9201' && '旅行需要の回復に支えられています。配当も安定しており、帰省や家族旅行がある時に重宝します。'}
-                      {s.code !== '8267' && s.code !== '3197' && s.code !== '3543' && s.code !== '9201' && '日常生活でお得を実感できる優待です。配当金も合わせてチェックしていきましょう。'}
-                    </p>
                   </div>
+                  <button
+                    onClick={() => handleAddPreset(preset)}
+                    className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-2.5 py-1 rounded-xl shadow-2xs active:scale-95 whitespace-nowrap ml-2"
+                  >
+                    追加
+                  </button>
                 </div>
               ))}
             </div>
           </div>
-        )}
+        </div>
       </main>
 
-      {/* ★【新設】今月の優待お知らせモーダル（ベルアイコンタップまたは自動通知） */}
+      {/* 📖 お渡し用「使い方ガイド」モーダル（1枚でわかる簡単ガイド） */}
+      {showGuideModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl w-full max-w-2xl p-6 md:p-8 shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-6 h-6 text-amber-500" />
+                <h3 className="text-xl font-black text-slate-900">わたしの株・優待手帳 使い方ガイド</h3>
+              </div>
+              <button
+                onClick={() => setShowGuideModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="my-6 space-y-6 text-slate-700">
+              {/* ステップ1 */}
+              <div className="flex gap-4 items-start bg-amber-50/60 p-4 rounded-2xl border border-amber-200">
+                <div className="w-9 h-9 rounded-full bg-amber-500 text-white flex items-center justify-center font-black text-lg flex-shrink-0">
+                  1
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-slate-900">持っている株を手帳に登録する</h4>
+                  <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+                    画面右上の <strong>「＋ 銘柄を追加」</strong> ボタンを押します。<br />
+                    手元のメモを見ながら、会社名・銘柄コード（数字4桁）・持っている株数・買った時の株価・優待内容を入力するだけで登録できます。
+                  </p>
+                </div>
+              </div>
+
+              {/* ステップ2 */}
+              <div className="flex gap-4 items-start bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200">
+                <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-lg flex-shrink-0">
+                  2
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-slate-900">「株価を最新に更新」ボタンを押す</h4>
+                  <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+                    大きな緑色の <strong>「株価を最新に更新」</strong> ボタンを押すと、インターネットから最新の株価と前日比が一括で読み込まれ、今の評価額や利益が自動計算されます！
+                  </p>
+                </div>
+              </div>
+
+              {/* ステップ3 */}
+              <div className="flex gap-4 items-start bg-orange-50/60 p-4 rounded-2xl border border-orange-200">
+                <div className="w-9 h-9 rounded-full bg-orange-500 text-white flex items-center justify-center font-black text-lg flex-shrink-0">
+                  3
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-slate-900">優待の届く時期を楽しむ</h4>
+                  <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+                    優待が届く月（今月なら10月）になると、画面に <strong>「🎁 今月届く！」</strong> とお知らせが表示されます。<br />
+                    「届いたら押す」ボタンで受取チェックもできるので、届き忘れの確認にも便利です。
+                  </p>
+                </div>
+              </div>
+
+              {/* ステップ4 */}
+              <div className="flex gap-4 items-start bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <div className="w-9 h-9 rounded-full bg-slate-700 text-white flex items-center justify-center font-black text-lg flex-shrink-0">
+                  ☁️
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-slate-900">Googleドライブ保存で安心</h4>
+                  <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+                    画面上の「Googleドライブ連携」からログインしておくと、ご自身のGoogleドライブ内の「myKabushikiList」フォルダに自動保存されます。パソコンを替えてもデータはいつでも安全に引き継がれます。
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-between items-center border-t border-slate-100">
+              <span className="text-xs text-slate-400">ブラウザのブックマーク（お気に入り）に登録しておくと次回すぐ開けます</span>
+              <button
+                onClick={() => setShowGuideModal(false)}
+                className="bg-amber-500 text-white font-black text-sm px-6 py-2.5 rounded-xl shadow-md active:scale-95"
+              >
+                とじる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 銘柄登録・編集モーダル */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-6 md:p-8 shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-5 pb-3 border-b border-slate-100">
+              <h3 className="text-lg md:text-xl font-black text-slate-900 flex items-center gap-2">
+                <PlusCircle className="w-6 h-6 text-amber-500" />
+                <span>{editingStock ? '銘柄の情報を編集する' : '新しい株式を登録する'}</span>
+              </h3>
+              <button 
+                onClick={() => setShowAddModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveStock} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-black text-slate-700 mb-1">
+                    会社名・銘柄名 <span className="text-rose-500">*</span>
+                  </label>
+                  <input 
+                    type="text"
+                    required
+                    placeholder="例：イオン、トヨタ"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full text-sm font-bold p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-black text-slate-700 mb-1">
+                    銘柄コード (数字4桁)
+                  </label>
+                  <input 
+                    type="text"
+                    placeholder="例：8267"
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    className="w-full text-sm font-mono font-bold p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    持っている株数
+                  </label>
+                  <input 
+                    type="number"
+                    placeholder="100"
+                    value={formData.shares}
+                    onChange={(e) => setFormData({ ...formData, shares: e.target.value })}
+                    className="w-full text-sm font-bold p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    購入単価 (1株いくら?)
+                  </label>
+                  <input 
+                    type="number"
+                    required
+                    placeholder="例：2800"
+                    value={formData.buyPrice}
+                    onChange={(e) => setFormData({ ...formData, buyPrice: e.target.value })}
+                    className="w-full text-sm font-bold p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    いまの株価 (現在値)
+                  </label>
+                  <input 
+                    type="number"
+                    placeholder="例：3450"
+                    value={formData.currentPrice}
+                    onChange={(e) => setFormData({ ...formData, currentPrice: e.target.value })}
+                    className="w-full text-sm font-bold p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              {/* 優待情報入力（到着予定の自動計算付き） */}
+              <div className="bg-amber-50/70 p-4 rounded-2xl border-2 border-amber-200 space-y-3">
+                <div>
+                  <label className="block text-xs font-black text-amber-950 mb-1">
+                    🎁 株主優待の内容
+                  </label>
+                  <input 
+                    type="text"
+                    placeholder="例：お買い物券3,000円分、お米5kg、カタログギフト"
+                    value={formData.yutaiTitle}
+                    onChange={(e) => setFormData({ ...formData, yutaiTitle: e.target.value })}
+                    className="w-full text-sm font-bold p-3 rounded-xl bg-white border border-amber-300 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-amber-900 mb-1">
+                      権利確定月 (例: 3, 9)
+                    </label>
+                    <input 
+                      type="text"
+                      placeholder="例：3, 9"
+                      value={formData.rightsMonths}
+                      onChange={(e) => handleRightsMonthsChange(e.target.value)}
+                      className="w-full text-xs font-bold p-2.5 rounded-xl bg-white border border-amber-300 focus:outline-none"
+                    />
+                    <span className="text-[10px] text-amber-700 mt-0.5 block">入力すると到着月が自動計算されます</span>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-amber-900 mb-1">
+                      📮 優待到着予定 (2〜3ヶ月後)
+                    </label>
+                    <input 
+                      type="text"
+                      placeholder="例：6, 12"
+                      value={formData.deliveryMonths}
+                      onChange={(e) => setFormData({ ...formData, deliveryMonths: e.target.value })}
+                      className="w-full text-xs font-bold p-2.5 rounded-xl bg-white border border-amber-300 focus:outline-none"
+                    />
+                    <span className="text-[10px] text-amber-700 mt-0.5 block">自動計算後も自由に変更可能</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-amber-900 mb-1">
+                    到着時期のメモ（例：6月下旬頃）
+                  </label>
+                  <input 
+                    type="text"
+                    placeholder="例：6月下旬・12月上旬頃"
+                    value={formData.deliveryMemo}
+                    onChange={(e) => setFormData({ ...formData, deliveryMemo: e.target.value })}
+                    className="w-full text-xs font-bold p-2.5 rounded-xl bg-white border border-amber-300 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-amber-900 mb-1">
+                    アイコンを選ぶ
+                  </label>
+                  <div className="flex gap-2 text-xl">
+                    {['🎁', '🍽️', '🛍️', '☕', '🌾', '✈️', '🎫', '🚗', '📱'].map((emoji) => (
+                      <button
+                        type="button"
+                        key={emoji}
+                        onClick={() => setFormData({ ...formData, icon: emoji })}
+                        className={`p-2 rounded-xl border text-xl ${formData.icon === emoji ? 'bg-amber-200 border-amber-500 scale-110' : 'bg-white border-slate-200'}`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  配当利回り (% / 分かれば入力)
+                </label>
+                <input 
+                  type="number"
+                  step="0.1"
+                  placeholder="例：2.5"
+                  value={formData.dividendYield}
+                  onChange={(e) => setFormData({ ...formData, dividendYield: e.target.value })}
+                  className="w-full text-xs font-bold p-2.5 rounded-xl border border-slate-300 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  📝 メモ（使い方や思い）
+                </label>
+                <input 
+                  type="text"
+                  placeholder="例：毎年新米が届く、家族でスシロー行く"
+                  value={formData.memo}
+                  onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
+                  className="w-full text-sm p-3 rounded-xl border border-slate-300 focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-3.5 text-sm font-bold text-slate-500 bg-slate-100 rounded-2xl"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-black py-3.5 rounded-2xl shadow-md text-base active:scale-95 transition-all"
+                >
+                  {editingStock ? '変更を保存する' : '手帳に登録する'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 株価・購入単価のクイック修正ポップアップ */}
+      {quickPriceEditStock && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-2.5 mb-4">
+              <span className="text-3xl">{quickPriceEditStock.icon}</span>
+              <div>
+                <h3 className="text-base font-black text-slate-900">{quickPriceEditStock.name} ({quickPriceEditStock.code})</h3>
+                <span className="text-xs text-slate-400 font-bold">価格の直接修正</span>
+              </div>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const newBuy = Number(e.target.buyPrice.value);
+              const newCur = Number(e.target.currentPrice.value);
+
+              const updated = stocks.map(s => {
+                if (s.id === quickPriceEditStock.id) {
+                  return {
+                    ...s,
+                    buyPrice: !isNaN(newBuy) && newBuy > 0 ? newBuy : s.buyPrice,
+                    currentPrice: !isNaN(newCur) && newCur > 0 ? newCur : s.currentPrice,
+                  };
+                }
+                return s;
+              });
+
+              setStocks(updated);
+              saveToDrive(updated);
+              setQuickPriceEditStock(null);
+            }} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  購入単価 (1株いくらで買ったか)
+                </label>
+                <input 
+                  name="buyPrice"
+                  type="number"
+                  defaultValue={quickPriceEditStock.buyPrice}
+                  className="w-full text-base font-bold p-2.5 rounded-xl border border-slate-300 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  いまの株価 (現在値)
+                </label>
+                <input 
+                  name="currentPrice"
+                  type="number"
+                  defaultValue={quickPriceEditStock.currentPrice}
+                  className="w-full text-base font-bold p-2.5 rounded-xl border border-slate-300 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setQuickPriceEditStock(null)}
+                  className="flex-1 py-2.5 text-xs font-bold text-slate-500 bg-slate-100 rounded-xl"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-xs font-black text-white bg-amber-500 rounded-xl shadow-md active:scale-95"
+                >
+                  保存する
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 今月届く優待お知らせモーダル */}
       {showNoticeModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
@@ -1060,7 +1328,7 @@ export default function App() {
                 <div className="text-4xl mb-2">📬</div>
                 <p className="text-xs text-slate-500">
                   今月 ({currentMonth}月) に届く予定の優待はありません。<br />
-                  カレンダーから来月以降の予定をご確認いただけます！
+                  一覧表の「優待到着予定」から今後の予定をご確認いただけます！
                 </p>
               </div>
             ) : (
@@ -1070,478 +1338,36 @@ export default function App() {
                   <span>今月は <strong>{currentMonthStocks.length}件</strong> の優待が届く予定です！</span>
                 </div>
 
-                {currentMonthStocks.map(stock => {
-                  const isReceived = receivedYutai.includes(stock.id);
-                  return (
-                    <div 
-                      key={stock.id}
-                      className={`p-3.5 rounded-2xl border transition-all ${
-                        isReceived ? 'bg-slate-50 border-slate-200 opacity-60' : 'bg-white border-amber-300 shadow-xs'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-2xl p-1 bg-amber-50 rounded-xl">{stock.icon}</span>
-                          <div>
-                            <h4 className="text-sm font-black text-slate-900">{stock.name}</h4>
-                            <span className="text-xs text-amber-700 font-bold">{stock.yutaiTitle}</span>
-                          </div>
+                {currentMonthStocks.map(stock => (
+                  <div key={stock.id} className="p-3.5 rounded-2xl border bg-white border-amber-300 shadow-xs">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-2xl p-1 bg-amber-50 rounded-xl">{stock.icon}</span>
+                        <div>
+                          <h4 className="text-sm font-black text-slate-900">{stock.name} ({stock.code})</h4>
+                          <span className="text-xs text-amber-700 font-bold">{stock.yutaiTitle}</span>
                         </div>
                       </div>
-
-                      <p className="text-[11px] text-slate-600 mt-2 leading-relaxed">
+                    </div>
+                    {stock.yutaiDetail && (
+                      <p className="text-xs text-slate-600 mt-2 leading-relaxed">
                         {stock.yutaiDetail}
                       </p>
-
-                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between">
-                        <span className="text-[10px] text-slate-400 font-medium">届く目安: {currentMonth}月中</span>
-                        <button
-                          onClick={() => toggleReceived(stock.id)}
-                          className={`text-xs font-bold px-3 py-1 rounded-xl flex items-center gap-1 active:scale-95 transition-all ${
-                            isReceived 
-                              ? 'bg-emerald-100 text-emerald-800' 
-                              : 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs'
-                          }`}
-                        >
-                          {isReceived ? (
-                            <>
-                              <PackageCheck className="w-3.5 h-3.5" />
-                              <span>受取済み ✓</span>
-                            </>
-                          ) : (
-                            <>
-                              <span>まだ届いていない（届いたら押す）</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
+                    )}
+                    <div className="mt-2 pt-2 border-t border-slate-100 text-xs text-slate-400">
+                      届く目安: {stock.deliveryMemo || `${currentMonth}月中`}
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             )}
 
-            {/* プッシュ通知設定ボタン */}
-            <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-700 flex items-center gap-1">
-                  <Smartphone className="w-3.5 h-3.5 text-slate-500" />
-                  <span>スマホの通知機能</span>
-                </span>
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                  notificationPermission === 'granted' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
-                }`}>
-                  {notificationPermission === 'granted' ? '通知ON' : '未設定'}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 leading-normal">
-                通知をONにすると、スマホを開いたときや優待月に画面にメッセージが届くようになります。
-              </p>
-              <button
-                onClick={handleRequestNotification}
-                className="w-full py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-2xs active:scale-95"
-              >
-                <Bell className="w-3.5 h-3.5 text-amber-600" />
-                <span>{notificationPermission === 'granted' ? '通知テストを送信する' : 'スマホの通知を許可する'}</span>
-              </button>
-            </div>
-
-            <div className="mt-4">
-              <button
-                onClick={() => setShowNoticeModal(false)}
-                className="w-full bg-amber-500 text-white font-bold text-xs py-3 rounded-xl shadow-md active:scale-95"
-              >
-                確認しました
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 買った値段のカンタン編集ポップアップ */}
-      {editingPriceStock && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-2.5 mb-4">
-              <span className="text-3xl">{editingPriceStock.icon}</span>
-              <div>
-                <h3 className="text-lg font-black text-slate-900">{editingPriceStock.name}</h3>
-                <span className="text-xs text-slate-400 font-bold">株価と買った値段の変更</span>
-              </div>
-            </div>
-
-            <form onSubmit={handleSavePriceEdit} className="space-y-3.5">
-              <div className="bg-amber-50/80 p-3.5 rounded-2xl border-2 border-amber-300">
-                <label className="block text-xs font-black text-amber-950 mb-1.5">
-                  1株いくらで買いましたか？ (円)
-                </label>
-                <input 
-                  type="number"
-                  required
-                  autoFocus
-                  placeholder="例：2500"
-                  value={tempBuyPrice}
-                  onChange={(e) => setTempBuyPrice(e.target.value)}
-                  className="w-full text-xl font-black p-3 rounded-xl border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">
-                  いまの株価 (円)
-                </label>
-                <input 
-                  type="number"
-                  placeholder="例：2800"
-                  value={tempCurrentPrice}
-                  onChange={(e) => setTempCurrentPrice(e.target.value)}
-                  className="w-full text-base p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-
-              {tempBuyPrice && tempCurrentPrice && (
-                <div className="p-3 rounded-xl bg-slate-100 text-xs flex justify-between items-center font-bold">
-                  <span className="text-slate-600">利益の計算結果:</span>
-                  {(() => {
-                    const diff = (Number(tempCurrentPrice) - Number(tempBuyPrice)) * editingPriceStock.shares;
-                    return (
-                      <span className={diff >= 0 ? 'text-emerald-700 font-black text-sm' : 'text-rose-700 font-black text-sm'}>
-                        {diff >= 0 ? '+' : ''}¥{diff.toLocaleString()}
-                      </span>
-                    );
-                  })()}
-                </div>
-              )}
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingPriceStock(null)}
-                  className="flex-1 py-3 text-sm font-bold text-slate-500 bg-slate-100 rounded-xl"
-                >
-                  キャンセル
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-3 text-sm font-black text-white bg-amber-500 rounded-xl shadow-md active:scale-95"
-                >
-                  保存する
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 銘柄詳細モーダル */}
-      {selectedStock && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-0 backdrop-blur-xs">
-          <div className="bg-white rounded-t-3xl w-full max-w-md p-6 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-3">
-                <span className="text-4xl p-2 bg-amber-50 rounded-2xl">{selectedStock.icon}</span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-2xl font-black text-slate-900">{selectedStock.name}</h3>
-                    <span className="text-xs font-mono bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-bold">
-                      {selectedStock.code}
-                    </span>
-                  </div>
-                  <span className="text-xs font-bold text-slate-500">
-                    保有: {selectedStock.shares}株
-                  </span>
-                </div>
-              </div>
-              <button 
-                onClick={() => setSelectedStock(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-bold text-slate-500">価格と利益の内訳</span>
-                <button
-                  onClick={() => {
-                    setEditingPriceStock(selectedStock);
-                    setTempBuyPrice(selectedStock.buyPrice.toString());
-                    setTempCurrentPrice(selectedStock.currentPrice.toString());
-                  }}
-                  className="text-xs text-amber-700 font-bold bg-amber-100 px-2.5 py-1 rounded-lg flex items-center gap-1"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>買った価格を変更</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-center my-2">
-                <div className="bg-white p-3 rounded-xl border border-slate-200">
-                  <div className="text-xs text-slate-400 font-bold">買ったときの株価</div>
-                  <div className="text-lg font-black text-slate-800 mt-0.5">
-                    ¥{selectedStock.buyPrice.toLocaleString()}
-                  </div>
-                  <div className="text-[10px] text-slate-400">1株あたり</div>
-                </div>
-
-                <div className="bg-white p-3 rounded-xl border border-slate-200">
-                  <div className="text-xs text-slate-400 font-bold">いまの株価</div>
-                  <div className="text-lg font-black text-slate-800 mt-0.5">
-                    ¥{selectedStock.currentPrice.toLocaleString()}
-                  </div>
-                  <div className="text-[10px] text-slate-400">1株あたり</div>
-                </div>
-              </div>
-
-              {(() => {
-                const diffPerShare = selectedStock.currentPrice - selectedStock.buyPrice;
-                const profitTotal = diffPerShare * selectedStock.shares;
-                const isProfit = profitTotal >= 0;
-                return (
-                  <div className={`mt-3 p-3.5 rounded-xl text-center ${
-                    isProfit ? 'bg-emerald-100 text-emerald-900' : 'bg-rose-100 text-rose-900'
-                  }`}>
-                    <div className="text-xs font-bold">
-                      {isProfit ? '🎊 現在出ているトータル利益' : '現在の差額（含み損）'}
-                    </div>
-                    <div className="text-2xl font-black mt-0.5">
-                      {isProfit ? '+' : ''}¥{profitTotal.toLocaleString()}
-                    </div>
-                    <div className="text-xs font-bold opacity-80 mt-0.5">
-                      (1株あたり {isProfit ? '+' : ''}¥{diffPerShare.toLocaleString()} の変動 × {selectedStock.shares}株)
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-            <div className="mt-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-amber-800 bg-amber-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                  <Gift className="w-3.5 h-3.5 text-amber-700" />
-                  株主優待の内容
-                </span>
-                <span className="text-xs font-bold text-orange-700 bg-white/80 px-2.5 py-0.5 rounded-full">
-                  📮 届く時期: {selectedStock.deliveryMonths ? selectedStock.deliveryMonths.map(m => `${m}月頃`).join('・') : '未定'}
-                </span>
-              </div>
-              <div className="text-lg font-black text-slate-900 mt-2">
-                {selectedStock.yutaiTitle}
-              </div>
-              <p className={`text-slate-700 mt-1.5 ${fontStyles.body}`}>
-                {selectedStock.yutaiDetail}
-              </p>
-            </div>
-
-            <div className="mt-4 bg-amber-50/50 p-3.5 rounded-2xl border border-amber-100">
-              <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                <span>📝 わたしのメモ</span>
-              </span>
-              <p className={`text-slate-700 mt-1 ${fontStyles.body}`}>
-                {selectedStock.memo || 'メモはまだありません'}
-              </p>
-            </div>
-
-            <div className="mt-6 flex justify-between items-center pt-3 border-t border-slate-100">
-              <button
-                onClick={() => handleDelete(selectedStock.id)}
-                className="text-xs text-rose-500 font-bold flex items-center gap-1 p-2 hover:bg-rose-50 rounded-xl"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>リストから外す</span>
-              </button>
-              <button
-                onClick={() => setSelectedStock(null)}
-                className="bg-amber-500 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-md active:scale-95"
-              >
-                とじる
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 銘柄登録モーダル */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-0 backdrop-blur-xs">
-          <div className="bg-white rounded-t-3xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <PlusCircle className="w-5 h-5 text-amber-500" />
-                <span>新しい株を登録する</span>
-              </h3>
-              <button 
-                onClick={() => setShowAddModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveStock} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  会社名・銘柄名 <span className="text-rose-500">*</span>
-                </label>
-                <input 
-                  type="text"
-                  required
-                  placeholder="例：イオン、トヨタ自動車"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full text-sm p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    銘柄コード (数字4桁)
-                  </label>
-                  <input 
-                    type="text"
-                    placeholder="例：8267"
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                    className="w-full text-sm p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    持っている株数
-                  </label>
-                  <input 
-                    type="number"
-                    placeholder="100"
-                    value={formData.shares}
-                    onChange={(e) => setFormData({ ...formData, shares: e.target.value })}
-                    className="w-full text-sm p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-amber-50/80 p-3.5 rounded-2xl border-2 border-amber-300/80 space-y-2">
-                <div className="text-xs font-black text-amber-950 flex items-center gap-1">
-                  <Coins className="w-4 h-4 text-amber-600" />
-                  <span>1株の価格と買った値段の入力</span>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-amber-900 mb-1">
-                      1株いくらで買った？ (円)
-                    </label>
-                    <input 
-                      type="number"
-                      required
-                      placeholder="例：2500"
-                      value={formData.buyPrice}
-                      onChange={(e) => setFormData({ ...formData, buyPrice: e.target.value })}
-                      className="w-full text-base font-black p-2.5 rounded-xl bg-white border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-amber-900 mb-1">
-                      いまの株価 (円)
-                    </label>
-                    <input 
-                      type="number"
-                      placeholder="例：2800"
-                      value={formData.currentPrice}
-                      onChange={(e) => setFormData({ ...formData, currentPrice: e.target.value })}
-                      className="w-full text-base font-black p-2.5 rounded-xl bg-white border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
-                  </div>
-                </div>
-                {formData.buyPrice && formData.currentPrice && (
-                  <div className="text-right text-xs font-bold text-amber-800">
-                    予想利益: ¥{((Number(formData.currentPrice) - Number(formData.buyPrice)) * Number(formData.shares || 100)).toLocaleString()}
-                  </div>
-                )}
-              </div>
-
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    🎁 株主優待の内容
-                  </label>
-                  <input 
-                    type="text"
-                    placeholder="例：お買い物券3,000円分、お米5kg"
-                    value={formData.yutaiTitle}
-                    onChange={(e) => setFormData({ ...formData, yutaiTitle: e.target.value })}
-                    className="w-full text-sm p-3 rounded-xl bg-white border border-slate-300 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      権利月 (何月権利?)
-                    </label>
-                    <input 
-                      type="text"
-                      placeholder="例：3, 9"
-                      value={formData.rightsMonths}
-                      onChange={(e) => setFormData({ ...formData, rightsMonths: e.target.value })}
-                      className="w-full text-xs p-2.5 rounded-xl bg-white border border-slate-300 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      届く月 (何月に届く?)
-                    </label>
-                    <input 
-                      type="text"
-                      placeholder="例：6, 12"
-                      value={formData.deliveryMonths}
-                      onChange={(e) => setFormData({ ...formData, deliveryMonths: e.target.value })}
-                      className="w-full text-xs p-2.5 rounded-xl bg-white border border-slate-300 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    アイコンを選ぶ
-                  </label>
-                  <div className="flex gap-2 text-xl">
-                    {['🎁', '🍽️', '🛍️', '☕', '🌾', '✈️', '🎫'].map((emoji) => (
-                      <button
-                        type="button"
-                        key={emoji}
-                        onClick={() => setFormData({ ...formData, icon: emoji })}
-                        className={`p-2 rounded-xl border text-xl ${formData.icon === emoji ? 'bg-amber-200 border-amber-500 scale-110' : 'bg-white border-slate-200'}`}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  ✏️ メモ（使い方や思い）
-                </label>
-                <input 
-                  type="text"
-                  placeholder="例：孫と行く外食で使う、年2回届く"
-                  value={formData.memo}
-                  onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
-                  className="w-full text-sm p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  className="w-full bg-amber-500 hover:bg-amber-600 active:scale-98 text-white font-bold py-3.5 rounded-2xl shadow-md text-base transition-transform"
-                >
-                  手帳に登録する
-                </button>
-              </div>
-            </form>
+            <button
+              onClick={() => setShowNoticeModal(false)}
+              className="w-full bg-amber-500 text-white font-bold text-xs py-3 rounded-xl shadow-md active:scale-95"
+            >
+              確認しました
+            </button>
           </div>
         </div>
       )}
@@ -1549,7 +1375,7 @@ export default function App() {
       {/* Google Drive 設定モーダル */}
       {showSettingsModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95 duration-150">
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
                 <Cloud className="w-5 h-5 text-amber-500" />
@@ -1563,173 +1389,23 @@ export default function App() {
               </button>
             </div>
 
-            <div className="space-y-3.5 text-xs text-slate-600">
-              <div className="bg-amber-50 p-3.5 rounded-2xl border border-amber-200">
-                <div className="font-black text-amber-950 mb-1 flex items-center gap-1">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>安心・安全の個人保存仕様</span>
-                </div>
-                <p className="leading-relaxed text-[11px] text-slate-700">
-                  Googleログインすると、ご自身のGoogleドライブの「<strong>myKabushikiList</strong>」フォルダの中にデータ（<code>stocks_data.json</code>）が直接保存されます。ご家族それぞれのアカウントで個別に安全に管理されます。
-                </p>
-              </div>
-
-              <form onSubmit={handleSaveClientId} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    Google OAuth クライアントID
-                  </label>
-                  <input 
-                    type="text"
-                    required
-                    placeholder="xxxx.apps.googleusercontent.com"
-                    value={clientIdInput}
-                    onChange={(e) => setClientIdInput(e.target.value)}
-                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 font-mono focus:outline-none focus:border-amber-500"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Google Cloud Console で発行した Web アプリケーションの Client ID を入力します。
-                  </p>
-                </div>
-
-                <div className="pt-1 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowSettingsModal(false)}
-                    className="flex-1 py-2.5 text-xs font-bold text-slate-500 bg-slate-100 rounded-xl"
-                  >
-                    閉じる
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-2.5 text-xs font-black text-white bg-amber-500 rounded-xl shadow-md active:scale-95"
-                  >
-                    設定を保存
-                  </button>
-                </div>
-              </form>
-
-              <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] space-y-1.5 text-slate-500">
-                <p className="font-bold text-slate-700">📌 クライアントIDの取得方法（竜馬さん用）:</p>
-                <ol className="list-decimal list-inside space-y-1 text-[10px] leading-relaxed">
-                  <li>Google Cloud Console でプロジェクトを作成</li>
-                  <li>「Google Drive API」を有効化</li>
-                  <li>認証情報で「OAuth クライアントID」を作成（Webアプリケーション）</li>
-                  <li>承認済みの JavaScript 生成元に <code>https://japanexporters-ryoma.github.io</code> を追加</li>
-                </ol>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* スマホで共有モーダル */}
-      {showQrModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-3">
-              <div className="flex items-center gap-2">
-                <Smartphone className="w-5 h-5 text-amber-500" />
-                <h3 className="text-base font-black text-slate-900">スマホで使う・家族に共有</h3>
-              </div>
-              <button 
-                onClick={() => setShowQrModal(false)}
-                className="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center font-bold text-xs"
-              >
-                ✕
-              </button>
-            </div>
-
             <p className="text-xs text-slate-600 leading-relaxed mb-4">
-              スマホカメラで下のQRコードを読み取るか、URLをLINEで家族に送るだけで、誰でも24時間いつでも開けます！
+              ログインすると、Googleマイドライブ内の「<strong>myKabushikiList</strong>」フォルダに自動保存されます。パソコンを替えても同じGoogleアカウントでログインすればデータが復元されます。
             </p>
 
-            <div className="bg-amber-50 p-4 rounded-2xl border-2 border-amber-200 flex flex-col items-center justify-center">
-              <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href)}`} 
-                alt="スマホ用QRコード" 
-                className="w-44 h-44 rounded-xl shadow-xs bg-white p-2"
-              />
-              <span className="text-[11px] font-mono text-slate-600 mt-2 font-bold break-all text-center px-2">
-                {window.location.href}
-              </span>
-            </div>
-
-            <div className="mt-4">
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                }}
-                className="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <Copy className="w-3.5 h-3.5 text-amber-600" />
-                <span>{copied ? '✅ URLをコピーしました！' : 'URLをコピー（LINEで送る）'}</span>
-              </button>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-slate-100">
-              <h4 className="text-xs font-black text-slate-800 mb-1.5 flex items-center gap-1">
-                <span>📲 ホーム画面にアイコンを置く方法</span>
-              </h4>
-              <div className="text-[11px] text-slate-600 space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <p>
-                  <strong>iPhoneの場合:</strong> 画面下の「共有ボタン（四角から上矢印）」を押し、<strong>「ホーム画面に追加」</strong>をタップ。
-                </p>
-                <p>
-                  <strong>Androidの場合:</strong> 右上の「︙（メニュー）」から<strong>「ホーム画面に追加」</strong>をタップ。
-                </p>
-                <p className="text-amber-800 font-bold">
-                  → 普通のアプリのようにワンタップで起動できるようになります！
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5">
-              <button
-                onClick={() => setShowQrModal(false)}
-                className="w-full bg-amber-500 text-white font-bold text-xs py-3 rounded-xl shadow-md active:scale-95"
-              >
-                とじる
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                setShowSettingsModal(false);
+                driveService.signIn();
+              }}
+              className="w-full py-3 bg-amber-500 text-white font-black text-sm rounded-xl shadow-md active:scale-95 flex items-center justify-center gap-2"
+            >
+              <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="" className="w-4 h-4 bg-white rounded-full p-0.5" />
+              <span>Googleアカウントでログイン</span>
+            </button>
           </div>
         </div>
       )}
-
-      {/* フッター固定ナビゲーション */}
-      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur border-t border-amber-100 px-3 py-2 flex justify-around items-center z-40 shadow-lg">
-        <button
-          onClick={() => setActiveTab('list')}
-          className={`flex flex-col items-center py-1 px-3 rounded-xl transition-colors ${
-            activeTab === 'list' ? 'text-amber-600 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <Gift className="w-5 h-5 mb-0.5" />
-          <span className="text-[11px]">マイ株式</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('calendar')}
-          className={`flex flex-col items-center py-1 px-3 rounded-xl transition-colors ${
-            activeTab === 'calendar' ? 'text-amber-600 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <Calendar className="w-5 h-5 mb-0.5" />
-          <span className="text-[11px]">届く月別</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('ai')}
-          className={`flex flex-col items-center py-1 px-3 rounded-xl transition-colors ${
-            activeTab === 'ai' ? 'text-indigo-600 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <Sparkles className="w-5 h-5 mb-0.5" />
-          <span className="text-[11px]">AI知恵袋</span>
-        </button>
-      </nav>
     </div>
   );
 }

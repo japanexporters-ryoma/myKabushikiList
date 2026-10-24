@@ -3,6 +3,9 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: ["main"]
+  schedule:
+    # 平日 月〜金の 16:30 JST (07:30 UTC) に自動で最新株価を取得して更新
+    - cron: '30 7 * * 1-5'
   workflow_dispatch:
 
 permissions:

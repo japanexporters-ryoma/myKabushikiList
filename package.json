@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "fetch-prices": "node scripts/fetchPrices.js",
+    "build": "node scripts/fetchPrices.js && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
